@@ -1,0 +1,11 @@
+name: BDAproject
+title: BDAproject
+account: ryan-quigley
+server: shinyapps.io
+appId: 137363
+bundleId: 615572
+url: https://ryan-quigley.shinyapps.io/BDAproject/
+when: 1479242850.30464
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .Rapp.history
