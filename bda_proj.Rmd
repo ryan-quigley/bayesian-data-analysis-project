@@ -1,13 +1,44 @@
 ---
-title: "MATH 264: Bayesian Project"
-output: html_notebook
+title: 'MATH 264: Bayesian Project'
+output:
+  html_document: default
+  html_notebook: default
 ---
 
+```{r, echo = FALSE}
+## Reading in datasets for the analysis
+
+## Death count data (Quentin Taratino movies removed)
+dc <- read.csv("filmdeathcounts_no-qt.csv", 
+               header = TRUE, 
+               stringsAsFactors = FALSE)
+
+## Project dataset meta data
+qt <- read.table("qt_data.txt", 
+                 header = FALSE, 
+                 col.names = c("movie", "body.count", "rating", "hours", "year", "genre"),
+                 sep = ";",
+                 strip.white = TRUE,
+                 stringsAsFactors = FALSE)
+```
 ### Sampling Distribution: Poisson  
 
-$$p(y ~|~ \alpha) = \frac{1}{y!}(\alpha t)^{y}e^{-(\alpha t)}$$
+##### Assumptions
 
-#### Assumptions:
+Lecture (See slide 23 of LectureD):  
+
+* let $y(t)$ denote the number of events that have occurred during a time interval $[0, t]$
+* $y(0) = 0$
+* For all $n \geq 0$, and for any two time intervals, $I_1$ and $I_2$, of equal length, Pr($n$ events in $I_1$) = Pr($n$ events in $I_2$)
+* Events that occur in nonoverlapping time intervals are mutually independent
+* $\lim\limits_{h \to 0}\frac{\text{Pr}(y(h) > 1)}{h} = 0$
+* $0 < \text{Pr}\{y(t)=0\} < 1, ~ \forall ~  t > 0$
+
+Under these conditions, there exists a positive number $\theta$ that produces the density below
+
+$$p(y ~|~ \theta) = \frac{1}{y!}(\theta t)^{y}e^{-(\theta t)}$$
+
+Wikipedia:  
 
 * $\theta$ the number of times an event occurs in an interval and it can take values 0, 1, 2,...
     - Confirmed
@@ -19,26 +50,38 @@ $$p(y ~|~ \alpha) = \frac{1}{y!}(\alpha t)^{y}e^{-(\alpha t)}$$
     - Technically two people 
 * The probability of an event in an interval is proportional to the length of the interval.
     - Seems reasonable: longer movies allow more time for more deaths
+    - LIKELY VIOLATED: see plot below, body count does not appear to increase with movie duration
+
+Not an assumption but a result of the sampling distribution: E[$y | \theta$] = Var($y | \theta$) = ??? $\theta$
     
+```{r, echo = FALSE}
+plot(qt$hours, qt$body.count, ann = FALSE, axes = FALSE, xlim = c(1.5, 3), col = "violetred", pch = 4)
+box(col = "gray50", lty = 1)
+axis(1, at = seq.int(1.5, 3, 0.5), col = "gray50", lwd = 0, lwd.tick = 1)
+axis(2, at = seq.int(0,400,100), col = "gray50", lwd = 0, lwd.tick = 1)
+title(xlab = "Movie Duration (hours)", ylab = "Body Count")
+```
+  
+### Likelihood
+
+Assuming exchangeability/i.i.d
+
+
+
+
     
 ### Conjugate Prior: Gamma
 
-$$p(\alpha ~|~ a, b) = \frac{b^a}{\Gamma(a)}\alpha^{a-1}e^{-b\alpha}$$
+[Interactive conjugate prior graphic](https://ryan-quigley.shinyapps.io/BDAproject/) using [data](https://figshare.com/articles/On_screen_movie_kill_counts_for_hundreds_of_films/889719) compiled by [Randal Olson](http://www.randalolson.com/) from the site: http://www.moviebodycounts.com/  
+
+After trial an error with the parameters, the best fit appears to be $\alpha = 1.5$ and $\beta = 1/35.5 = 0.0282$. NOTE: the parameters should be mathematically approximated through moments and quantiles, not necessarily trial and error
+
+$$\begin{align*}
+p(\theta ~|~ \alpha = 1.5, \beta = 0.0282) & = \frac{(0.0282)^{1.5}}{\Gamma(1.5)}\theta^{0.5}e^{-(0.0282)\cdot\theta} \\
+& \propto \theta^{0.5}e^{-(0.0282)\cdot\theta}
+\end{align*}$$
 
 ```{r, echo = FALSE}
-## Death count data (Quentin Taratino movies removed)
-dc <- read.csv("filmdeathcounts_no-qt.csv", 
-               header = TRUE, 
-               stringsAsFactors = FALSE)
-
-## Project dataset meta data
-qt <- read.table("qt_meta.txt", 
-                 header = FALSE, 
-                 col.names = c("movie", "rating", "duration", "year", "genre"),
-                 sep = ";",
-                 strip.white = TRUE,
-                 stringsAsFactors = FALSE)
-
 ## Genre list for project dataset
 qt.g <- unique(unlist(strsplit(paste(qt$genre, collapse = ", ", sep = ""), ", ")))
 
@@ -59,8 +102,8 @@ dc.filt <- dc[dc$MPAA_Rating %in% c("R", "Unrated", "NR") & dc$Year > 1991 & dc$
 rownames(dc.filt) <- 1:nrow(dc.filt)
 
 h <- 10
-k <- 1.5
-theta <- 35.5
+alpha <- 1.5
+beta <- 1/35.5
 
 d <- density(dc.filt$Body_Count, kernel = "epanechnikov", bw = h, from = 0)
 plot(d, ann = FALSE, axes = FALSE,
@@ -71,15 +114,21 @@ axis(1, at = seq.int(0, 600, 100), lwd = 0, lwd.ticks = 0)
 axis(2, at = seq.int(0, 0.02, 0.005), pos = -75)
     
 ## Gamma parameter controls
-g.mean <- k*theta
-g.mode <- (k-1)*theta
-g.var <- k*(theta)^2
+g.mean <- alpha/beta
+g.mode <- (alpha-1)/beta
+g.var <- alpha/(beta)^2
 
 ## Plot theoretical gamma distribution
-curve(dgamma(x, shape = k, scale = theta), from = 0, to = 600, add = TRUE, lty = 2, col = "slateblue")
+curve(dgamma(x, shape = alpha, rate = beta), from = 0, to = 600, add = TRUE, lty = 2, col = "slateblue")
 #legend("top", legend = paste(c("Mean =", "Mode =", "Variance ="), c(g.mean, g.mode, g.var)), bty = "n")
 legend("top", legend = c("KDE", "Gamma"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
-title(xlab = expression(theta), ylab = "Density")
+title(xlab = expression(theta), ylab = "Density", line = 2)
 ```
 
+### Posterior Distribution  
 
+
+### Posterior Predictive Distribution  
+The posterior predictive distribution for a single additional observation is a negative binomial distribution
+
+### Posterior Predictive Checking

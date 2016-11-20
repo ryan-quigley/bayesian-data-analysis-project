@@ -53,12 +53,12 @@ server <- function(input, output) {
     axis(2, at = seq.int(0, 0.02, 0.005), pos = -75)
     
     ## Gamma parameter controls
-    g.mean <- input$k*input$theta
-    g.mode <- (input$k-1)*input$theta
-    g.var <- input$k*(input$theta)^2
+    g.mean <- input$a*input$b
+    g.mode <- (input$a-1)*input$b
+    g.var <- input$a*(input$b)^2
     
     ## Plot theoretical gamma distribution
-    curve(dgamma(x, shape = input$k, scale = input$theta), from = 0, to = 400, add = TRUE, lty = 2, col = "slateblue")
+    curve(dgamma(x, shape = input$a, scale = input$b), from = 0, to = 400, add = TRUE, lty = 2, col = "slateblue")
     legend("top", legend = paste(c("Mean =", "Mode =", "Variance ="), c(g.mean, g.mode, g.var)), bty = "n")
   })
 }
