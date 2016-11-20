@@ -143,11 +143,11 @@ $(document).ready(function () {
 <p>Lecture (See slide 23 of LectureD):</p>
 <ul>
 <li>let <span class="math inline">\(y(t)\)</span> denote the number of events that have occurred during a time interval <span class="math inline">\([0, t]\)</span></li>
-<li><span class="math inline">\(y(0) = 0\)</span></li>
-<li>For all <span class="math inline">\(n \geq 0\)</span>, and for any two time intervals, <span class="math inline">\(I_1\)</span> and <span class="math inline">\(I_2\)</span>, of equal length, Pr(<span class="math inline">\(n\)</span> events in <span class="math inline">\(I_1\)</span>) = Pr(<span class="math inline">\(n\)</span> events in <span class="math inline">\(I_2\)</span>)</li>
-<li>Events that occur in nonoverlapping time intervals are mutually independent</li>
-<li><span class="math inline">\(\lim\limits_{h \to 0}\frac{\text{Pr}(y(h) &gt; 1)}{h} = 0\)</span></li>
-<li><span class="math inline">\(0 &lt; \text{Pr}\{y(t)=0\} &lt; 1, ~ \forall ~ t &gt; 0\)</span></li>
+<li>P1: <span class="math inline">\(y(0) = 0\)</span></li>
+<li>P2: For all <span class="math inline">\(n \geq 0\)</span>, and for any two time intervals, <span class="math inline">\(I_1\)</span> and <span class="math inline">\(I_2\)</span>, of equal length, Pr(<span class="math inline">\(n\)</span> events in <span class="math inline">\(I_1\)</span>) = Pr(<span class="math inline">\(n\)</span> events in <span class="math inline">\(I_2\)</span>)</li>
+<li>P3: Events that occur in nonoverlapping time intervals are mutually independent (want to relax this and replace with exchangeability)</li>
+<li>P4: <span class="math inline">\(\lim\limits_{h \to 0}\frac{\text{Pr}(y(h) &gt; 1)}{h} = 0\)</span></li>
+<li>P5: <span class="math inline">\(0 &lt; \text{Pr}\{y(t)=0\} &lt; 1, ~ \forall ~ t &gt; 0\)</span></li>
 </ul>
 <p>Under these conditions, there exists a positive number <span class="math inline">\(\theta\)</span> that produces the density below where <span class="math inline">\(\theta\)</span> = the true underlying death rate in Quentin Taratino movies (measured in bodies per hour)</p>
 <p><span class="math display">\[p(y ~|~ \theta) = \frac{1}{y!}(\theta t)^{y}e^{-(\theta t)} \cdot {1}_{\{0,1,2,...\}}(y)\]</span></p>
@@ -182,8 +182,7 @@ $(document).ready(function () {
 <div id="likelihood" class="section level3">
 <h3>Likelihood</h3>
 <p>A necessary and sufficient condition to get product of identical distributions is<br />
-<span class="math display">\[p(y_1,...y_n ~|~ s_n) = \frac{s_n!}{y_1!,...,y_n!} \prod\limits_{i=1}^n \left(\frac{1}{n}\right)^{y_i}\]</span> For every <span class="math inline">\(n\)</span>, where <span class="math inline">\(s_n = y_1 + ... + y_n\)</span></p>
-<p>Assuming exchangeability/i.i.d [NOT JUSTITFIED]</p>
+<span class="math display">\[p(y_1,...y_n ~|~ s_n) = \frac{s_n!}{y_1!,...,y_n!} \prod\limits_{i=1}^n \left(\frac{1}{n}\right)^{y_i}\]</span> For every <span class="math inline">\(n\)</span>, where <span class="math inline">\(s_n = y_1 + ... + y_n\)</span>. Assuming [NEEDS JUSTIFICATION] this condition holds, the likelihood is:</p>
 <p><span class="math display">\[\begin{align*}
 p(y ~|~ \theta) &amp; \propto \exp\left( -\theta \sum\limits_{i=1}^n t_i \right) ~ \exp\left(\log~\theta \cdot \sum\limits_{i=1}^n y_i\right) \\
 &amp; \propto \exp\left( -18.1 \cdot \theta \right) ~ \exp\left(563 \cdot \log~\theta \right) \\

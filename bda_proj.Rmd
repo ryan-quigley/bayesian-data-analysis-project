@@ -46,11 +46,11 @@ According to Gelman et. al. (pg. 45), this model is NOT exchangeable in the $y_i
 Lecture (See slide 23 of LectureD):  
 
 * let $y(t)$ denote the number of events that have occurred during a time interval $[0, t]$
-* $y(0) = 0$
-* For all $n \geq 0$, and for any two time intervals, $I_1$ and $I_2$, of equal length, Pr($n$ events in $I_1$) = Pr($n$ events in $I_2$)
-* Events that occur in nonoverlapping time intervals are mutually independent
-* $\lim\limits_{h \to 0}\frac{\text{Pr}(y(h) > 1)}{h} = 0$
-* $0 < \text{Pr}\{y(t)=0\} < 1, ~ \forall ~  t > 0$
+* P1: $y(0) = 0$
+* P2: For all $n \geq 0$, and for any two time intervals, $I_1$ and $I_2$, of equal length, Pr($n$ events in $I_1$) = Pr($n$ events in $I_2$)
+* P3: Events that occur in nonoverlapping time intervals are mutually independent (want to relax this and replace with exchangeability)
+* P4: $\lim\limits_{h \to 0}\frac{\text{Pr}(y(h) > 1)}{h} = 0$
+* P5: $0 < \text{Pr}\{y(t)=0\} < 1, ~ \forall ~  t > 0$
 
 Under these conditions, there exists a positive number $\theta$ that produces the density below where $\theta$ = the true underlying death rate in Quentin Taratino movies (measured in bodies per hour)
 
@@ -83,9 +83,7 @@ title(xlab = "Movie Duration (hours)", ylab = "Body Count")
 ### Likelihood
 A necessary and sufficient condition to get product of identical distributions is  
 $$p(y_1,...y_n ~|~ s_n) = \frac{s_n!}{y_1!,...,y_n!} \prod\limits_{i=1}^n \left(\frac{1}{n}\right)^{y_i}$$
-For every $n$, where $s_n = y_1 + ... + y_n$  
-
-Assuming exchangeability/i.i.d [NOT JUSTITFIED]
+For every $n$, where $s_n = y_1 + ... + y_n$. Assuming [NEEDS JUSTIFICATION] this condition holds, the likelihood is:
 
 $$\begin{align*}
 p(y ~|~ \theta) & \propto \exp\left( -\theta \sum\limits_{i=1}^n t_i \right) ~ \exp\left(\log~\theta \cdot \sum\limits_{i=1}^n y_i\right) \\
