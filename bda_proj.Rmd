@@ -5,7 +5,7 @@ output: html_notebook
 
 ### Sampling Distribution: Poisson  
 
-$$p(y | \alpha) = \frac{1}{y!}(\alpha t)^{y}\text{exp}\{-(\alpha t)\}$$
+$$p(y ~|~ \alpha) = \frac{1}{y!}(\alpha t)^{y}e^{-(\alpha t)}$$
 
 #### Assumptions:
 
@@ -23,7 +23,7 @@ $$p(y | \alpha) = \frac{1}{y!}(\alpha t)^{y}\text{exp}\{-(\alpha t)\}$$
     
 ### Conjugate Prior: Gamma
 
-$$p(\alpha) = $$
+$$p(\alpha ~|~ a, b) = \frac{b^a}{\Gamma(a)}\alpha^{a-1}e^{-b\alpha}$$
 
 ```{r, echo = FALSE}
 ## Death count data (Quentin Taratino movies removed)
