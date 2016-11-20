@@ -21,7 +21,25 @@ qt <- read.table("qt_data.txt",
                  strip.white = TRUE,
                  stringsAsFactors = FALSE)
 ```
-### Sampling Distribution: Poisson  
+
+### Data Summary
+
+```{r, echo = FALSE}
+cat("Body count summary:", fill = TRUE)
+summary(qt$body.count)
+cat("Sample variance:", var(qt$body.count), "\n", fill = TRUE)
+cat("Body count (exclude outlier) summary:", fill = TRUE)
+summary(qt$body.count[qt$body.count != max(qt$body.count)])
+cat("Sample variance:", var(qt$body.count[qt$body.count != max(qt$body.count)]), "\n", fill = TRUE)
+cat("Movie duration summary:", fill = TRUE)
+summary(qt$hours)
+```
+
+Regardless of whether the large outlier is included, the sample mean and sample variance differ significantly. This suggests the Poisson model may not be a very good fit
+
+### Sampling Distribution: Poisson with rate and exposure
+
+According to Gelman et. al. (pg. 45), this model is NOT exchangeable in the $y_i$'s but is exchangeable in the pairs $(x,y)_i$
 
 ##### Assumptions
 
@@ -34,9 +52,9 @@ Lecture (See slide 23 of LectureD):
 * $\lim\limits_{h \to 0}\frac{\text{Pr}(y(h) > 1)}{h} = 0$
 * $0 < \text{Pr}\{y(t)=0\} < 1, ~ \forall ~  t > 0$
 
-Under these conditions, there exists a positive number $\theta$ that produces the density below
+Under these conditions, there exists a positive number $\theta$ that produces the density below where $\theta$ = the true underlying death rate in Quentin Taratino movies (measured in bodies per hour)
 
-$$p(y ~|~ \theta) = \frac{1}{y!}(\theta t)^{y}e^{-(\theta t)}$$
+$$p(y ~|~ \theta) = \frac{1}{y!}(\theta t)^{y}e^{-(\theta t)} \cdot {1}_{\{0,1,2,...\}}(y)$$
 
 Wikipedia:  
 
@@ -52,7 +70,7 @@ Wikipedia:
     - Seems reasonable: longer movies allow more time for more deaths
     - LIKELY VIOLATED: see plot below, body count does not appear to increase with movie duration
 
-Not an assumption but a result of the sampling distribution: E[$y | \theta$] = Var($y | \theta$) = ??? $\theta$
+Not an assumption but a result of the sampling distribution: E[$y | \theta$] = Var($y | \theta$) = $\theta$
     
 ```{r, echo = FALSE}
 plot(qt$hours, qt$body.count, ann = FALSE, axes = FALSE, xlim = c(1.5, 3), col = "violetred", pch = 4)
@@ -63,10 +81,17 @@ title(xlab = "Movie Duration (hours)", ylab = "Body Count")
 ```
   
 ### Likelihood
+A necessary and sufficient condition to get product of identical distributions is  
+$$p(y_1,...y_n ~|~ s_n) = \frac{s_n!}{y_1!,...,y_n!} \prod\limits_{i=1}^n \left(\frac{1}{n}\right)^{y_i}$$
+For every $n$, where $s_n = y_1 + ... + y_n$  
 
-Assuming exchangeability/i.i.d
+Assuming exchangeability/i.i.d [NOT JUSTITFIED]
 
-
+$$\begin{align*}
+p(y ~|~ \theta) & \propto \exp\left( -\theta \sum\limits_{i=1}^n t_i \right) ~ \exp\left(\log~\theta \cdot \sum\limits_{i=1}^n y_i\right) \\
+& \propto \exp\left( -18.1 \cdot \theta \right) ~ \exp\left(563 \cdot \log~\theta \right) \\
+& \propto \theta^{563} e^{ -18.1 \cdot \theta}
+\end{align*}$$
 
 
     
@@ -74,11 +99,30 @@ Assuming exchangeability/i.i.d
 
 [Interactive conjugate prior graphic](https://ryan-quigley.shinyapps.io/BDAproject/) using [data](https://figshare.com/articles/On_screen_movie_kill_counts_for_hundreds_of_films/889719) compiled by [Randal Olson](http://www.randalolson.com/) from the site: http://www.moviebodycounts.com/  
 
-After trial an error with the parameters, the best fit appears to be $\alpha = 1.5$ and $\beta = 1/35.5 = 0.0282$. NOTE: the parameters should be mathematically approximated through moments and quantiles, not necessarily trial and error
+After trial and error by visual inspection, the best fit appears to be $\alpha = 1.5$ and $\beta = 1/35.5 = 0.0282$. These numbers are also quite close to the analytical solution:
+```{r}
+l0 <- 0
+u0 <- 200
+p0 <- 0.99
+m0 <- 17.5
+center0 <- "mode"
+
+f <- function(a, m, l, u, center = "mode", p = 0.99) {
+  if (center == "mode") b <- (a - 1) / m else
+  if (center == "mean") b <- a / m
+  pgamma(u, shape = a, rate = b) -
+  pgamma(l, shape = a, rate = b) - p
+}
+a <- uniroot(f, interval = c(1, 5), m = m0,
+               l = l0, u = u0,
+               center = center0, p = p0)$root
+if (center0 == "mode") b <- (a - 1) / m0 else b <- a / m0
+cat(paste("a =", round(a,3), "; b =", round(b,3)))
+```
 
 $$\begin{align*}
-p(\theta ~|~ \alpha = 1.5, \beta = 0.0282) & = \frac{(0.0282)^{1.5}}{\Gamma(1.5)}\theta^{0.5}e^{-(0.0282)\cdot\theta} \\
-& \propto \theta^{0.5}e^{-(0.0282)\cdot\theta}
+p(\theta ~|~ \alpha = 1.5, \beta = 0.0282) & = \frac{(0.0282)^{1.5}}{\Gamma(1.5)}\theta^{1.5 - 1}e^{-(0.0282)\cdot\theta} \\
+& \propto \theta^{1.5 - 1}e^{-(0.0282)\cdot\theta}
 \end{align*}$$
 
 ```{r, echo = FALSE}
@@ -127,8 +171,47 @@ title(xlab = expression(theta), ylab = "Density", line = 2)
 
 ### Posterior Distribution  
 
+In general, the posterior distribution is $\text{Gamma}\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$
+$$\begin{align*}
+p(\theta ~|~ y) & \propto \theta^{563} e^{ -18.1 \cdot \theta} \cdot \theta^{1.5 - 1}e^{-(0.0282)\cdot\theta} \\
+& \propto \theta^{564.5 - 1} e^{ -18.1282 \cdot \theta}
+\end{align*}$$
 
-### Posterior Predictive Distribution  
-The posterior predictive distribution for a single additional observation is a negative binomial distribution
+Thus, the posterior distribution of $\theta$ is Gamma(564.5, 18.1282)
+
+```{r, echo = FALSE}
+t.sum <- sum(qt$hours)
+y.sum <- sum(qt$body.count)
+alpha.post <- alpha + y.sum
+beta.post <- beta + t.sum
+curve(dgamma(x, shape = alpha.post, rate = beta.post), from = 0, to = 300, lty = 1, col = "violetred", ann = FALSE, bty = "n")
+curve(dgamma(x, shape = alpha, rate = beta), from = 0, to = 300, lty = 2, col = "slateblue", add = TRUE)
+legend("top", legend = c("Prior", "Posterior"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
+title(xlab = expression(theta), ylab = "Density", line = 2)
+```
+
+##### HPD
+
+```{r, echo = FALSE}
+library(HDInterval)
+p <- 0.99
+hpd <- hdi(qgamma, shape = alpha + y.sum, rate = beta + t.sum, credMass = p)
+cat("The ", 100*attributes(hpd)$credMass, "% HPD Region for death rate (theta) is: [", paste(round(hpd,2), collapse = ", "), "]", sep = "")
+```
+
+### Posterior Predictive Distribution
+Do we need to account for $t$ in the prediction?
+The posterior predictive distribution for a single additional observation is a negative binomial distribution (see Gelman page 44): NB$\left(y ~|~ \alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$
+
+```{r}
+post.preds <- dnbinom(0:60, size = alpha.post, prob = (beta.post/(1+beta.post)))
+plot(0:60, post.preds, ann = FALSE, type = "h", lty = 3, col = "grey50", bty = "n", axes = FALSE, ylim = c(0, 0.08))
+points(0:60, post.preds, pch = 20, col = "violetred")
+axis(1, seq.int(0,60,5), col = "gray50")
+axis(2, seq.int(0,0.08,0.01), col = "gray50")
+title(xlab = expression(tilde(y)), ylab = expression(paste("Pr(", tilde(y), ")", sep = "")))
+```
+
+Thus, the most likely values for the body count in Quentin Taratino's next movie are 30 or 31.
 
 ### Posterior Predictive Checking
