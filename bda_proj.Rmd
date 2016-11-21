@@ -215,16 +215,21 @@ Thus, the most likely values for the body count in Quentin Taratino's next movie
 
 ### Sensitivity to Prior Parameters
 
-### Posterior Predictive Checking
+### Posterior Predictive Checking  
+The observed data should look plausible under the posterior predictive distribution
 
 ```{r}
+## Simulation set=up
 set.seed(2016)
 m <- 100000
 n.obs <- length(qt$body.count)
-
 theta.sim <- rgamma(m, shape = alpha.post, rate = beta.post)
 yrep <- mapply(rpois, n = n.obs, lambda = theta.sim)
+```
 
+##### Maximum
+
+```{r, echo = FALSE}
 obs.max <- max(qt$body.count)      # observed maximum
 sim.max <- apply(yrep, 2, max)   # simulated maximum
 pval <- length(sim.max[sim.max <= obs.max]) / m
@@ -232,3 +237,45 @@ hist(sim.max, xlim = c(0,400), freq = FALSE, ann = FALSE)
 lines(rep(obs.max, 2), c(0, 0.10), col = "red", lwd = 1.5)
 mtext(paste("p-value:",pval), side = 3)
 ```
+
+**Conclusion**: The maximum of the dataset is inconsistent with our model. [NEED MORE INTERPRETATION/DETAIL]
+
+##### Minimum
+```{r, echo = FALSE}
+obs.min <- min(qt$body.count)      # observed minimum
+sim.min <- apply(yrep, 2, min)   # simulated minimum
+pval <- length(sim.min[sim.min >= obs.min]) / m
+hist(sim.min, freq = FALSE, xlim = c(0,50), ylim = c(0,0.15), ann = FALSE)
+lines(rep(obs.min, 2), c(0, 0.12), col = "red", lwd = 1.5)
+mtext(paste("p-value:",pval), side = 3)
+```
+
+**Conclusion**: 
+
+##### Sample mean 
+```{r, echo = FALSE}
+
+```
+
+**Conclusion**: 
+
+##### Sample variance
+```{r, echo = FALSE}
+
+```
+
+**Conclusion**: 
+
+##### Range of data
+```{r, echo = FALSE}
+
+```
+
+**Conclusion**: 
+
+##### Ratio: Sample Mean to Sample Variance
+```{r, echo = FALSE}
+
+```
+
+**Conclusion**: 
