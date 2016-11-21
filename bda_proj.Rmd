@@ -71,7 +71,11 @@ Wikipedia:
     - Seems reasonable: longer movies allow more time for more deaths
     - LIKELY VIOLATED: see plot below, body count does not appear to increase with movie duration
 
-Not an assumption but a result of the sampling distribution: E[$y | \theta$] = Var($y | \theta$) = $\theta$
+####???
+Not an assumption but a result of the sampling distribution:  
+E[$y | \theta$] = Var($y | \theta$) = $\theta$  
+OR  
+E[$y(t) | \theta$] = Var($y(t) | \theta$) = $\theta \cdot t$
     
 ```{r, echo = FALSE}
 plot(qt$hours, qt$body.count, ann = FALSE, axes = FALSE, xlim = c(1.5, 3), col = "violetred", pch = 4)
@@ -199,19 +203,37 @@ cat("The ", 100*attributes(hpd)$credMass, "% HPD Region for death rate (theta) i
 ```
 
 ### Posterior Predictive Distribution
-Do we need to account for $t$ in the prediction?
-The posterior predictive distribution for a single additional observation is a negative binomial distribution (see Gelman page 44): NB$\left(y ~|~ \alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$
 
-```{r}
-post.preds <- dnbinom(0:60, size = alpha.post, prob = (beta.post/(1+beta.post)))
-plot(0:60, post.preds, ann = FALSE, type = "h", lty = 3, col = "grey50", bty = "n", axes = FALSE, ylim = c(0, 0.08))
-points(0:60, post.preds, pch = 20, col = "violetred")
-axis(1, seq.int(0,60,5), col = "gray50")
+The posterior predictive distribution for a single additional observation is a negative binomial distribution (see Gelman page 44-45). Assuming conditional independence of y and $\tilde{y}$ given $\theta$. NB$\left(y ~|~ \alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$
+\begin{align*}
+p(\tilde{y} ~|~ y) & = \int\limits_0^{\infty} p(\tilde{y} ~|~ \theta)\cdot p(\theta ~|~ y) ~d\theta \\
+& = \int\limits_0^{\infty} \text{Poisson}(\tilde{y}(t) ~|~ \theta) \text{Gamma}\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right) ~d\theta \\
+& = \text{NB}\left(\alpha + \sum\limits_{i=1}^n y_i ~,~ \frac{1}{\tilde{t}}\left[\beta + \sum\limits_{i=1}^n t_i \right]\right)
+\end{align*}
+
+```{r, echo = FALSE}
+t.new <- seq.int(1.5, 3, 0.5)
+beta.ppd <- beta.post/t.new
+post.preds <- mapply(dnbinom, x = 0:140, MoreArgs = list(size = rep(alpha.post, length(t.new)), prob = (beta.ppd/(beta.ppd + 1))))
+x.modes <- apply(post.preds, 1, order, decreasing = TRUE)[1, ]
+modes <- post.preds[matrix(c(1:4, x.modes), nrow = 4)]
+post.preds[post.preds < 1e-05] <- NA
+col.vec <- c("violetred", "slateblue", "#d95f02", "#1b9e77")
+
+plot(1, 1, ann = FALSE, axes = FALSE, type = "n", lty = 3, col = "grey50", bty = "n", xlim = c(0, 160), ylim = c(0, 0.08))
+for (i in 1:4) {
+  points(0:140, post.preds[i, ], pch = 20, col = col.vec[i])
+  lines(rep(x.modes[i] - 1, 2), c(-0.1, modes[i]), col = "grey50", lty = 3)
+}
+axis(1, seq.int(0,160,20), col = "gray50")
 axis(2, seq.int(0,0.08,0.01), col = "gray50")
 title(xlab = expression(tilde(y)), ylab = expression(paste("Pr(", tilde(y), ")", sep = "")))
+legend("topright", title = "Movie Duration (hours)", legend = t.new, col = col.vec, pch = 20, ncol = 2, bty = "n")
+text(x.modes - 1, modes, labels = round(modes, 3), pos = 3)
+points(x.modes - 1, rep(0, length(x.modes)), pch = 4, col = "black")
 ```
 
-Thus, the most likely values for the body count in Quentin Taratino's next movie are 30 or 31.
+Thus, the most likely values for the body count in Quentin Taratino's next movie are...
 
 ### Sensitivity to Prior Parameters
 
