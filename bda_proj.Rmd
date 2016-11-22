@@ -24,19 +24,23 @@ qt <- read.table("qt_data.txt",
 
 ### Data Summary
 
+##### Movie Data  
+
 ```{r, echo = FALSE}
-qt[,c(1,2,4)]
-cat("Body count summary:", fill = TRUE)
-summary(qt$body.count)
-cat("Sample variance:", var(qt$body.count), "\n", fill = TRUE)
-cat("Body count (exclude outlier) summary:", fill = TRUE)
-summary(qt$body.count[qt$body.count != max(qt$body.count)])
-cat("Sample variance:", var(qt$body.count[qt$body.count != max(qt$body.count)]), "\n", fill = TRUE)
-cat("Movie duration summary:", fill = TRUE)
-summary(qt$hours)
+knitr::kable(qt, align = "l")
 ```
 
-Regardless of whether the large outlier is included, the sample mean and sample variance differ significantly. This suggests the Poisson model may not be a very good fit
+##### Body Count Summary  
+
+```{r, echo = FALSE}
+bc.df <- data.frame(rbind(summary(qt$body.count), summary(qt$body.count[qt$body.count != max(qt$body.count)])), 
+                    Var = c(var(qt$body.count), var(qt$body.count[qt$body.count != max(qt$body.count)])), 
+                    check.names = FALSE, 
+                    row.names = c("All Obs.", "Exclude Inglorious Bastards"))
+knitr::kable(bc.df, align = "l")
+```
+
+Regardless of whether the large outlier associated with *Inglorious Bastards* is included, the sample mean and sample variance differ significantly: this suggests the Poisson model may not be a very good fit
 
 ### Sampling Distribution: Poisson with rate and exposure
 
@@ -91,8 +95,7 @@ $$p(y_1,...y_n ~|~ s_n) = \frac{s_n!}{y_1!,...,y_n!} \prod\limits_{i=1}^n \left(
 For every $n$, where $s_n = y_1 + ... + y_n$. Assuming [NEEDS JUSTIFICATION] this condition holds, the likelihood is:
 
 $$\begin{align*}
-p(y ~|~ \theta) & \propto \exp\left( -\theta \sum\limits_{i=1}^n t_i \right) ~ \exp\left(\log~\theta \cdot \sum\limits_{i=1}^n y_i\right) \\
-& \propto \exp\left( -18.1 \cdot \theta \right) ~ \exp\left(563 \cdot \log~\theta \right) \\
+p(y ~|~ \theta) & \propto \theta^{\left(\sum\limits_{i=1}^n y_i\right)} \exp\left( -\theta \sum\limits_{i=1}^n t_i \right)  \\
 & \propto \theta^{563} e^{ -18.1 \cdot \theta}
 \end{align*}$$
 
@@ -103,7 +106,7 @@ p(y ~|~ \theta) & \propto \exp\left( -\theta \sum\limits_{i=1}^n t_i \right) ~ \
 [Interactive conjugate prior graphic](https://ryan-quigley.shinyapps.io/BDAproject/) using [data](https://figshare.com/articles/On_screen_movie_kill_counts_for_hundreds_of_films/889719) compiled by [Randal Olson](http://www.randalolson.com/) from the site: http://www.moviebodycounts.com/  
 
 After trial and error by visual inspection, the best fit appears to be $\alpha = 1.5$ and $\beta = 1/35.5 = 0.0282$. These numbers are also quite close to the analytical solution:
-```{r}
+```{r, echo = FALSE}
 l0 <- 0
 u0 <- 200
 p0 <- 0.99
@@ -153,9 +156,11 @@ alpha <- 1.5
 beta <- 1/35.5
 
 d <- density(dc.filt$Body_Count, kernel = "epanechnikov", bw = h, from = 0)
-plot(d, ann = FALSE, axes = FALSE,
+plot(1,0.01, ann = FALSE, axes = FALSE,
      xlim = c(-100, 700), ylim = c(0, 0.02), 
-     bty = "n", col = "violetred", lwd = 1.5)
+     bty = "n", type = "n")
+hist(dc.filt$Body_Count, breaks = 50, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
+lines(d, col = "violetred", lwd = 1.5)
 axis(1, at = seq.int(-50, 700, 50), labels = NA)
 axis(1, at = seq.int(0, 600, 100), lwd = 0, lwd.ticks = 0)
 axis(2, at = seq.int(0, 0.02, 0.005), pos = -75)
@@ -174,21 +179,15 @@ title(xlab = expression(theta), ylab = "Density", line = 2)
 
 ### Posterior Distribution  
 
-In general, the posterior distribution is $\text{Gamma}\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$
-$$\begin{align*}
-p(\theta ~|~ y) & \propto \theta^{563} e^{ -18.1 \cdot \theta} \cdot \theta^{1.5 - 1}e^{-(0.0282)\cdot\theta} \\
-& \propto \theta^{564.5 - 1} e^{ -18.1282 \cdot \theta}
-\end{align*}$$
-
-Thus, the posterior distribution of $\theta$ is Gamma(564.5, 18.1282)
+In general, the posterior distribution is Gamma$\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$. Thus, the posterior distribution of $\theta$ is Gamma(564.5, 18.1282)
 
 ```{r, echo = FALSE}
 t.sum <- sum(qt$hours)
 y.sum <- sum(qt$body.count)
 alpha.post <- alpha + y.sum
 beta.post <- beta + t.sum
-curve(dgamma(x, shape = alpha.post, rate = beta.post), from = 0, to = 300, lty = 1, col = "violetred", ann = FALSE, bty = "n")
-curve(dgamma(x, shape = alpha, rate = beta), from = 0, to = 300, lty = 2, col = "slateblue", add = TRUE)
+curve(dgamma(x, shape = alpha.post, rate = beta.post), from = 0, to = 300, n = 1000, lty = 1, col = "violetred", ann = FALSE, bty = "n")
+curve(dgamma(x, shape = alpha, rate = beta), from = 0, to = 300, n = 1000, lty = 2, col = "slateblue", add = TRUE)
 legend("top", legend = c("Prior", "Posterior"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
 title(xlab = expression(theta), ylab = "Density", line = 2)
 ```
@@ -204,7 +203,7 @@ cat("The ", 100*attributes(hpd)$credMass, "% HPD Region for death rate (theta) i
 
 ### Posterior Predictive Distribution
 
-The posterior predictive distribution for a single additional observation is a negative binomial distribution (see Gelman page 44-45). Assuming conditional independence of y and $\tilde{y}$ given $\theta$. NB$\left(y ~|~ \alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$
+The posterior predictive distribution for a single additional observation is a negative binomial distribution (see Gelman page 44-45). Assuming conditional independence of y and $\tilde{y}$ given $\theta$.  
 \begin{align*}
 p(\tilde{y} ~|~ y) & = \int\limits_0^{\infty} p(\tilde{y} ~|~ \theta)\cdot p(\theta ~|~ y) ~d\theta \\
 & = \int\limits_0^{\infty} \text{Poisson}(\tilde{y}(t) ~|~ \theta) \text{Gamma}\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right) ~d\theta \\
@@ -233,9 +232,36 @@ text(x.modes - 1, modes, labels = round(modes, 3), pos = 3)
 points(x.modes - 1, rep(0, length(x.modes)), pch = 4, col = "black")
 ```
 
-Thus, the most likely values for the body count in Quentin Taratino's next movie are...
+Thus, the most likely values for the body count in Quentin Taratino's next movie are:
 
-### Sensitivity to Prior Parameters
+```{r, echo = FALSE}
+ppd.df <- data.frame(hours = t.new, y = (x.modes - 1), p = round(modes, 2))
+names(ppd.df) <- c("Movie Duration (hours)", "Most Likely Value (body count)", "Probability")
+knitr::kable(ppd.df, align = "l")
+```
+
+### Sensitivity to Prior Distribution
+
+In this section we analyze the effects of different prior distributions on posterior inference. First we consider the effects of a noninformative prior instead of the gamma conjugate prior. The Jeffreys prior for $\theta$ follows from the Fisher information calculation below:  
+$$\begin{align*}
+I_n(\theta) & = \text{E}\left\{ \left(\frac{\partial}{\partial \theta} \log p(y~|~\theta)\right)^2 ~\Bigg|~ \theta \right\} \\
+& = \frac{1}{\theta^2} \text{E}\left[\left(\sum\limits_{i=1}^n y_i - \theta\sum\limits_{i=1}^n t_i\right)^2 ~\Bigg|~ \theta \right] \\
+& = \frac{1}{\theta^2} \text{Var}\left( \sum\limits_{i=1}^n y_i ~\Bigg|~ \theta \right) \\
+& = \frac{1}{\theta} \cdot \sum\limits_{i=1}^n t_i \\
+\implies p(\theta) & \propto \sqrt{\frac{1}{\theta}}
+\end{align*}$$  
+This results in an improper prior; however, this does not prevent us from finding a posterior distribution for $\theta$ [WHY???]. The resulting posterior distribution for $\theta$ is Gamma$(563.5, 18.1)$. The posterior distribution parameters are nearly identical to those that resulted from a conjugate prior. The two posterior distributions considered in this analysis thus far are plotted below, which illustrates that the two posterior distributions are pratically identical. This suggests that the posterior distribution is dominated by the data and choice of sampling distribution.
+
+```{r, echo = FALSE}
+curve(dgamma(x, shape = 563.5, rate = 18.1), 
+      from = 20, to = 40, n = 1000, 
+      lty = 1, col = "violetred", ann = FALSE, bty = "n", xlim = c(20,40), ylim = c(0,0.40))
+curve(dgamma(x, shape = alpha.post, rate = beta.post), 
+      from = 20, to = 40, n = 1000, 
+      lty = "36", lwd = 2, col = "slateblue", add = TRUE)
+legend("top", legend = c("Posterior (Conjugate Prior)", "Posterior (Noninformative Prior)"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
+title(xlab = expression(theta), ylab = "Density", line = 2)
+```
 
 ### Posterior Predictive Checking  
 The observed data should look plausible under the posterior predictive distribution
@@ -246,29 +272,35 @@ set.seed(2016)
 m <- 100000
 n.obs <- length(qt$body.count)
 theta.sim <- rgamma(m, shape = alpha.post, rate = beta.post)
-yrep <- mapply(rpois, n = n.obs, lambda = theta.sim)
 ```
 
 ##### Maximum
 
-```{r, echo = FALSE}
-obs.max <- max(qt$body.count)      # observed maximum
+```{r}
+yrep <- mapply(rpois, n = n.obs, lambda = (theta.sim*qt$hours[qt$body.count == max(qt$body.count)]))
+obs.max <- max(qt$body.count)    # observed maximum
 sim.max <- apply(yrep, 2, max)   # simulated maximum
 pval <- length(sim.max[sim.max <= obs.max]) / m
-hist(sim.max, xlim = c(0,400), freq = FALSE, ann = FALSE)
-lines(rep(obs.max, 2), c(0, 0.10), col = "red", lwd = 1.5)
+```
+```{r, echo = FALSE}
+hist(sim.max, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,400), ylim = c(0, 0.06))
+lines(rep(obs.max, 2), c(0, 0.06), col = "red", lwd = 1.5)
 mtext(paste("p-value:",pval), side = 3)
 ```
 
 **Conclusion**: The maximum of the dataset is inconsistent with our model. [NEED MORE INTERPRETATION/DETAIL]
 
 ##### Minimum
-```{r, echo = FALSE}
-obs.min <- min(qt$body.count)      # observed minimum
+
+```{r}
+yrep <- mapply(rpois, n = n.obs, lambda = (theta.sim*qt$hours[qt$body.count == min(qt$body.count)]))
+obs.min <- min(qt$body.count)    # observed minimum
 sim.min <- apply(yrep, 2, min)   # simulated minimum
 pval <- length(sim.min[sim.min >= obs.min]) / m
-hist(sim.min, freq = FALSE, xlim = c(0,50), ylim = c(0,0.15), ann = FALSE)
-lines(rep(obs.min, 2), c(0, 0.12), col = "red", lwd = 1.5)
+```
+```{r, echo = FALSE}
+hist(sim.min, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,100), ylim = c(0,0.08))
+lines(rep(obs.min, 2), c(0, 0.08), col = "red", lwd = 1.5)
 mtext(paste("p-value:",pval), side = 3)
 ```
 

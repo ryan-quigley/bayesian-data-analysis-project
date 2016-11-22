@@ -45,9 +45,11 @@ server <- function(input, output) {
   
   output$distPlot <- renderPlot({
     d <- density(dc.filt$Body_Count, kernel = "epanechnikov", bw = input$h, from = 0)
-    plot(d, ann = FALSE, axes = FALSE,
+    plot(1, 0.01, ann = FALSE, axes = FALSE,
          xlim = c(-100, 700), ylim = c(0, 0.02), 
-         bty = "n", col = "violetred", lwd = 1.5)
+         bty = "n", type = "n")
+    hist(dc.filt$Body_Count, breaks = 50, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
+    lines(d, col = "violetred", lwd = 1.5)
     axis(1, at = seq.int(-50, 700, 50), labels = NA)
     axis(1, at = seq.int(0, 600, 100), lwd = 0, lwd.ticks = 0)
     axis(2, at = seq.int(0, 0.02, 0.005), pos = -75)
