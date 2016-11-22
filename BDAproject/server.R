@@ -12,7 +12,7 @@ library(shiny)
 dc <- read.csv("data/filmdeathcounts_no-qt.csv", 
                header = TRUE, 
                stringsAsFactors = FALSE)
-
+dc$Kill_Rate <- dc$Body_Count/dc$Length_Minutes * 60
 ## Project dataset meta data
 qt <- read.table("data/qt_meta.txt", 
                  header = FALSE, 
@@ -45,14 +45,14 @@ server <- function(input, output) {
   
   output$distPlot <- renderPlot({
     d <- density(dc.filt$Body_Count, kernel = "epanechnikov", bw = input$h, from = 0)
-    plot(1, 0.01, ann = FALSE, axes = FALSE,
-         xlim = c(-100, 700), ylim = c(0, 0.02), 
+    plot(1,0.01, ann = FALSE, axes = FALSE,
+         xlim = c(0, 400), ylim = c(0, 0.035), 
          bty = "n", type = "n")
-    hist(dc.filt$Body_Count, breaks = 50, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
+    hist(dc.filt$Kill_Rate, breaks = 30, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
     lines(d, col = "violetred", lwd = 1.5)
-    axis(1, at = seq.int(-50, 700, 50), labels = NA)
-    axis(1, at = seq.int(0, 600, 100), lwd = 0, lwd.ticks = 0)
-    axis(2, at = seq.int(0, 0.02, 0.005), pos = -75)
+    axis(1, at = seq.int(0, 400, 50), labels = NA)
+    axis(1, at = seq.int(0, 400, 100), lwd = 0, lwd.ticks = 0)
+    axis(2, at = seq.int(0, 0.035, 0.01))
     
     ## Gamma parameter controls
     g.mean <- input$a*input$b

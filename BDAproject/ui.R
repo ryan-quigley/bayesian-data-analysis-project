@@ -13,7 +13,7 @@ ui <- fluidPage(
                        "Bandwidth:",
                        min = 1,
                        max = 20,
-                       value = 10,
+                       value = 5,
                        step = 0.5)
     ),
     column(4,
@@ -21,7 +21,7 @@ ui <- fluidPage(
                        "Gamma Shape (alpha):",
                        min = 0,
                        max = 5,
-                       value = 1.5,
+                       value = 1,
                        step = 0.1)
     ),
     column(4,
@@ -29,7 +29,7 @@ ui <- fluidPage(
                        "Gamma Scale (1/beta):",
                        min = 0,
                        max = 100,
-                       value = 35,
+                       value = 58,
                        step = 0.5)
     )
   )
