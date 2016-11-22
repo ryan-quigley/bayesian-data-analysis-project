@@ -301,13 +301,14 @@ mtext(paste("p-value:",pval), side = 3)
 ##### Sample mean
 
 ```{r}
-obs.mean <- mean(qt$body.count)    # observed mean
-sim.mean <- apply(yrep, 2, mean)   # simulated mean
+t.mean <- mean(qt$hours)
+obs.mean <- mean(qt$body.count)*t.mean    # observed mean
+sim.mean <- apply(yrep, 2, mean)*t.mean   # simulated mean
 pval <- length(sim.mean[sim.mean >= obs.mean]) / m
 ```
 ```{r, echo = FALSE}
-hist(sim.mean, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(40,120), ylim = c(0,0.1))
-lines(rep(obs.mean, 2), c(0, 0.1), col = "red", lwd = 1.5)
+hist(sim.mean, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(120,240), ylim = c(0,0.05))
+lines(rep(obs.mean, 2), c(0, 0.05), col = "red", lwd = 1.5)
 mtext(paste("p-value:", pval), side = 3)
 ```
 
@@ -317,12 +318,12 @@ mtext(paste("p-value:", pval), side = 3)
 
 ```{r}
 obs.var <- var(qt$body.count)    # observed variance
-sim.var <- apply(yrep, 2, var)   # simulated variance
+sim.var <- apply(yrep*t.mean, 2, var)   # simulated variance
 pval <- length(sim.var[sim.var <= obs.var]) / m
 ```
 ```{r, echo = FALSE}
-hist(sim.var, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,400), ylim = c(0,0.015))
-lines(rep(obs.var, 2), c(0, 0.015), col = "red", lwd = 1.5)
+hist(sim.var, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,3000), ylim = c(0,0.0025))
+lines(rep(obs.var, 2), c(0, 0.0025), col = "red", lwd = 1.5)
 mtext(paste("p-value:", pval), side = 3)
 ```
 
@@ -331,8 +332,9 @@ mtext(paste("p-value:", pval), side = 3)
 ##### Range of data
 
 ```{r}
+t.range <- range(qt$hours)
 obs.range <- diff(range(qt$body.count))    # observed variance
-sim.itmd <- apply(yrep, 2, range)
+sim.itmd <- apply(yrep, 2, range)*t.range
 sim.range <- apply(sim.itmd, 2, diff) # simulated variance
 pval <- length(sim.range[sim.range <= obs.range]) / m
 ```
@@ -362,3 +364,10 @@ pval <- length(sim.var[sim.var <= obs.var]) / m
 **Conclusion**: 
 
 ### Assumption Checking
+
+#### NOTE:
+Given the plot structure of movies we would not expect the kill rate to be constant within the movie; however, with the information available we cannot determine whether or not this assumption is violated within each movie.
+
+### Alternative Models
+
+Comment on the negative binomial as a robust alternative to poisson.
