@@ -12,7 +12,7 @@ output:
 dc <- read.csv("filmdeathcounts_no-qt.csv", 
                header = TRUE, 
                stringsAsFactors = FALSE)
-
+dc$Kill_Rate <- dc$Body_Count/dc$Length_Minutes * 60
 ## Project dataset meta data
 qt <- read.table("qt_data.txt", 
                  header = FALSE, 
@@ -24,13 +24,14 @@ qt <- read.table("qt_data.txt",
 
 ### Data Summary
 
-##### Movie Data  
+##### Quentin Taratino Movie Data  
+Meta data extracted from [IMDB](http://www.imdb.com/)
 
 ```{r, echo = FALSE}
 knitr::kable(qt, align = "l")
 ```
 
-##### Body Count Summary  
+##### Quentin Taratino Body Count Summary  
 
 ```{r, echo = FALSE}
 bc.df <- data.frame(rbind(summary(qt$body.count), summary(qt$body.count[qt$body.count != max(qt$body.count)])), 
@@ -40,7 +41,37 @@ bc.df <- data.frame(rbind(summary(qt$body.count), summary(qt$body.count[qt$body.
 knitr::kable(bc.df, align = "l")
 ```
 
-Regardless of whether the large outlier associated with *Inglorious Bastards* is included, the sample mean and sample variance differ significantly: this suggests the Poisson model may not be a very good fit
+Regardless of whether the large outlier associated with *Inglorious Bastards* is included, the sample mean and sample variance differ significantly: this suggests the Poisson model may not be a very good fit.
+
+##### Movie Database Sample  
+
+* filter conditions:
+    - year: 1991-2013
+    - rating: R, Unrated, or NR
+    - genre: crime, drama, thriller, action, adventure, war, western
+* sample size: 244
+
+```{r, echo = FALSE}
+## Genre list for project dataset
+qt.g <- unique(unlist(strsplit(paste(qt$genre, collapse = ", ", sep = ""), ", ")))
+
+## Splitting genre list for each movie in death count dataset
+dc.g <- strsplit(tolower(dc$Genre), "|", fixed = TRUE)
+
+## Checking if any genres match those of project genre list
+dc$Genre_Match <- logical(1)
+for (i in seq_along(dc.g)) {
+  dc$Genre_Match[i] <- any(dc.g[[i]] %in% qt.g)
+}
+
+## Filter death count dataset
+## 1) Rating R or Not Rates
+## 2) Year later than 1991 (earliest is 1992)
+## 3) Genre Match
+dc.filt <- dc[dc$MPAA_Rating %in% c("R", "Unrated", "NR") & dc$Year > 1991 & dc$Genre_Match == TRUE, ]
+rownames(dc.filt) <- 1:nrow(dc.filt)
+summary(dc.filt$Kill_Rate)
+```
 
 ### Sampling Distribution: Poisson with rate and exposure
 
@@ -75,11 +106,7 @@ Wikipedia:
     - Seems reasonable: longer movies allow more time for more deaths
     - LIKELY VIOLATED: see plot below, body count does not appear to increase with movie duration
 
-####???
-Not an assumption but a result of the sampling distribution:  
-E[$y | \theta$] = Var($y | \theta$) = $\theta$  
-OR  
-E[$y(t) | \theta$] = Var($y(t) | \theta$) = $\theta \cdot t$
+Not an assumption but a result of the sampling distribution: E[$y(t) | \theta$] = Var($y(t) | \theta$) = $\theta \cdot t$
     
 ```{r, echo = FALSE}
 plot(qt$hours, qt$body.count, ann = FALSE, axes = FALSE, xlim = c(1.5, 3), col = "violetred", pch = 4)
@@ -105,65 +132,20 @@ p(y ~|~ \theta) & \propto \theta^{\left(\sum\limits_{i=1}^n y_i\right)} \exp\lef
 
 [Interactive conjugate prior graphic](https://ryan-quigley.shinyapps.io/BDAproject/) using [data](https://figshare.com/articles/On_screen_movie_kill_counts_for_hundreds_of_films/889719) compiled by [Randal Olson](http://www.randalolson.com/) from the site: http://www.moviebodycounts.com/  
 
-After trial and error by visual inspection, the best fit appears to be $\alpha = 1.5$ and $\beta = 1/35.5 = 0.0282$. These numbers are also quite close to the analytical solution:
 ```{r, echo = FALSE}
-l0 <- 0
-u0 <- 200
-p0 <- 0.99
-m0 <- 17.5
-center0 <- "mode"
+h <- 5
+alpha <- 1
+beta <- 0.023
 
-f <- function(a, m, l, u, center = "mode", p = 0.99) {
-  if (center == "mode") b <- (a - 1) / m else
-  if (center == "mean") b <- a / m
-  pgamma(u, shape = a, rate = b) -
-  pgamma(l, shape = a, rate = b) - p
-}
-a <- uniroot(f, interval = c(1, 5), m = m0,
-               l = l0, u = u0,
-               center = center0, p = p0)$root
-if (center0 == "mode") b <- (a - 1) / m0 else b <- a / m0
-cat(paste("a =", round(a,3), "; b =", round(b,3)))
-```
-
-$$\begin{align*}
-p(\theta ~|~ \alpha = 1.5, \beta = 0.0282) & = \frac{(0.0282)^{1.5}}{\Gamma(1.5)}\theta^{1.5 - 1}e^{-(0.0282)\cdot\theta} \\
-& \propto \theta^{1.5 - 1}e^{-(0.0282)\cdot\theta}
-\end{align*}$$
-
-```{r, echo = FALSE}
-## Genre list for project dataset
-qt.g <- unique(unlist(strsplit(paste(qt$genre, collapse = ", ", sep = ""), ", ")))
-
-## Splitting genre list for each movie in death count dataset
-dc.g <- strsplit(tolower(dc$Genre), "|", fixed = TRUE)
-
-## Checking if any genres match those of project genre list
-dc$Genre_Match <- logical(1)
-for (i in seq_along(dc.g)) {
-  dc$Genre_Match[i] <- any(dc.g[[i]] %in% qt.g)
-}
-
-## Filter death count dataset
-## 1) Rating R or Not Rates
-## 2) Year later than 1991 (earliest is 1992)
-## 3) Genre Match
-dc.filt <- dc[dc$MPAA_Rating %in% c("R", "Unrated", "NR") & dc$Year > 1991 & dc$Genre_Match == TRUE, ]
-rownames(dc.filt) <- 1:nrow(dc.filt)
-
-h <- 10
-alpha <- 1.5
-beta <- 1/35.5
-
-d <- density(dc.filt$Body_Count, kernel = "epanechnikov", bw = h, from = 0)
+d <- density(dc.filt$Kill_Rate, kernel = "epanechnikov", bw = h, from = 0, to = 400)
 plot(1,0.01, ann = FALSE, axes = FALSE,
-     xlim = c(-100, 700), ylim = c(0, 0.02), 
+     xlim = c(0, 400), ylim = c(0, 0.035), 
      bty = "n", type = "n")
-hist(dc.filt$Body_Count, breaks = 50, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
+hist(dc.filt$Kill_Rate, breaks = 50, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
 lines(d, col = "violetred", lwd = 1.5)
-axis(1, at = seq.int(-50, 700, 50), labels = NA)
-axis(1, at = seq.int(0, 600, 100), lwd = 0, lwd.ticks = 0)
-axis(2, at = seq.int(0, 0.02, 0.005), pos = -75)
+axis(1, at = seq.int(0, 400, 50), labels = NA)
+axis(1, at = seq.int(0, 400, 100), lwd = 0, lwd.ticks = 0)
+axis(2, at = seq.int(0, 0.035, 0.01))
     
 ## Gamma parameter controls
 g.mean <- alpha/beta
@@ -171,15 +153,26 @@ g.mode <- (alpha-1)/beta
 g.var <- alpha/(beta)^2
 
 ## Plot theoretical gamma distribution
-curve(dgamma(x, shape = alpha, rate = beta), from = 0, to = 600, add = TRUE, lty = 2, col = "slateblue")
+curve(dgamma(x, shape = alpha, rate = beta), from = 0, to = 400, add = TRUE, lty = 2, col = "slateblue")
 #legend("top", legend = paste(c("Mean =", "Mode =", "Variance ="), c(g.mean, g.mode, g.var)), bty = "n")
 legend("top", legend = c("KDE", "Gamma"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
-title(xlab = expression(theta), ylab = "Density", line = 2)
+title(xlab = expression(theta), ylab = "Density")
 ```
+
+From the density histogram above, the density appears to be monotonically decreasing in the interval $[0,\infty)$ suggesting a shape parameter $\alpha = 1$. The vast majority of the data is less than 300, so we solve the following equation for $\beta$ taking $\alpha = 1$:
+$$\begin{align*}
+0.999 & = \int\limits_0^{300} \beta e^{-\beta\theta} d\theta \\
+& = 1 - e^{-300\beta} \\
+\implies \beta & = \frac{-1}{300} \log(0.001) \\
+& = 0.023
+\end{align*}$$
+Therefore, the conjugate prior distribution of $\theta$ is:
+$$p(\theta ~|~ \alpha = 1, \beta = 0.023) \propto e^{-(0.023)\cdot\theta}
+$$
 
 ### Posterior Distribution  
 
-In general, the posterior distribution is Gamma$\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$. Thus, the posterior distribution of $\theta$ is Gamma(564.5, 18.1282)
+In general, the posterior distribution is Gamma$\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$. Thus, the posterior distribution of $\theta$ is Gamma(564, 18.123)
 
 ```{r, echo = FALSE}
 t.sum <- sum(qt$hours)
@@ -262,6 +255,9 @@ curve(dgamma(x, shape = alpha.post, rate = beta.post),
 legend("top", legend = c("Posterior (Conjugate Prior)", "Posterior (Noninformative Prior)"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
 title(xlab = expression(theta), ylab = "Density", line = 2)
 ```
+
+[TODO!!!]
+Additionally, we will examine the effect of choosing a conjugate gamma prior distribution with larger variance to account for higher body counts.
 
 ### Posterior Predictive Checking  
 The observed data should look plausible under the posterior predictive distribution
