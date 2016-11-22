@@ -51,6 +51,7 @@ Regardless of whether the large outlier associated with *Inglorious Bastards* is
     - genre: crime, drama, thriller, action, adventure, war, western
 * sample size: 244
 
+Kill rate per hour:  
 ```{r, echo = FALSE}
 ## Genre list for project dataset
 qt.g <- unique(unlist(strsplit(paste(qt$genre, collapse = ", ", sep = ""), ", ")))
@@ -141,7 +142,7 @@ d <- density(dc.filt$Kill_Rate, kernel = "epanechnikov", bw = h, from = 0, to = 
 plot(1,0.01, ann = FALSE, axes = FALSE,
      xlim = c(0, 400), ylim = c(0, 0.035), 
      bty = "n", type = "n")
-hist(dc.filt$Kill_Rate, breaks = 50, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
+hist(dc.filt$Kill_Rate, breaks = 30, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
 lines(d, col = "violetred", lwd = 1.5)
 axis(1, at = seq.int(0, 400, 50), labels = NA)
 axis(1, at = seq.int(0, 400, 100), lwd = 0, lwd.ticks = 0)
