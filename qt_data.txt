@@ -2,7 +2,8 @@ Reservoir Dogs; 11; R; 1.65; 1992; crime, drama, thriller
 Pulp Fiction; 7; R; 2.567; 1994; crime, drama
 Jackie Brown; 4; R; 2.567; 1997; crime, thriller
 Kill Bill Vol. 1; 62; R; 1.85; 2003; action, thriller
-Kill Bill Vol. 2; 13; R; 2.283; 2004; action, crime, drama
+Kill Bill Vol. 2; 13; R; 2.283; 2004; action, crime, drama, thriller
 Death Proof; 6; Not Rated; 1.883; 2007; thriller
 Inglorious Bastards; 396; R; 2.55; 2009; adventure, drama, war
 Django Unchained; 64; R; 2.75; 2012; drama, western
+The Hateful Eight; 18; R; 2.783; 2015; crime, drama, mystery, thriller, western

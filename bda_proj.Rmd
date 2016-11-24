@@ -20,6 +20,8 @@ qt <- read.table("qt_data.txt",
                  sep = ";",
                  strip.white = TRUE,
                  stringsAsFactors = FALSE)
+qt$kill.rate <- round(qt$body.count / qt$hours, 2)
+qt <- qt[, c(1,6,5,3,2,4,7)]
 ```
 
 ### Data Summary
@@ -29,6 +31,7 @@ Meta data extracted from [IMDB](http://www.imdb.com/)
 
 ```{r, echo = FALSE}
 knitr::kable(qt, align = "l")
+qt.all <- qt
 ```
 
 ##### Quentin Taratino Body Count Summary  
@@ -104,7 +107,7 @@ Wikipedia:
 
 Not an assumption but a result of the sampling distribution: E[$y(t) | \theta$] = Var($y(t) | \theta$) = $\theta \cdot t$
     
-```{r, echo = FALSE}
+```{r, echo = FALSE, eval = FALSE}
 plot(qt$hours, qt$body.count, ann = FALSE, axes = FALSE, xlim = c(1.5, 3), col = "violetred", pch = 4)
 box(col = "gray50", lty = 1)
 axis(1, at = seq.int(1.5, 3, 0.5), col = "gray50", lwd = 0, lwd.tick = 1)
@@ -155,7 +158,7 @@ legend("top", legend = c("KDE", "Gamma"), col = c("slateblue", "violetred"), lty
 title(xlab = expression(theta), ylab = "Density")
 ```
 
-From the density histogram above, the density appears to be monotonically decreasing in the interval $[0,\infty)$ suggesting a shape parameter $\alpha = 1$. The vast majority of the data is less than 300, so we solve the following equation for $\beta$ taking $\alpha = 1$:
+From the density histogram above, the density appears to be monotonically decreasing in the interval $(0,\infty)$ suggesting a shape parameter $\alpha = 1$. The vast majority of the data is less than 300, so we solve the following equation for $\beta$ taking $\alpha = 1$:
 $$\begin{align*}
 0.999 & = \int\limits_0^{300} \beta e^{-\beta\theta} d\theta \\
 & = 1 - e^{-300\beta} \\
@@ -163,8 +166,7 @@ $$\begin{align*}
 & = 0.023
 \end{align*}$$
 Therefore, the conjugate prior distribution of $\theta$ is:
-$$p(\theta ~|~ \alpha = 1, \beta = 0.023) \propto e^{-(0.023)\cdot\theta}
-$$
+$$p(\theta ~|~ \alpha = 1, \beta = 0.023) \propto e^{-(0.023)\cdot\theta}$$
 
 ### Posterior Distribution  
 

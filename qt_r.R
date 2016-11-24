@@ -14,14 +14,15 @@ setwd("/Users/ryanquigley/Documents/SJSU/264/project")
 dc <- read.csv("filmdeathcounts_no-qt.csv", 
 	header = TRUE, 
 	stringsAsFactors = FALSE)
-	
+dc$Kill_Rate <- dc$Body_Count/dc$Length_Minutes * 60
+
 ## Project dataset meta data
-qt <- read.table("qt_meta", 
-	header = FALSE, 
-	col.names = c("movie", "rating", "duration", "year", "genre"),
-	sep = ";",
-	strip.white = TRUE,
-	stringsAsFactors = FALSE)
+qt <- read.table("qt_data.txt", 
+                 header = FALSE, 
+                 col.names = c("movie", "body.count", "rating", "hours", "year", "genre"),
+                 sep = ";",
+                 strip.white = TRUE,
+                 stringsAsFactors = FALSE)
 
 ## Genre list for project dataset
 qt.g <- unique(unlist(strsplit(paste(qt$genre, collapse = ", ", sep = ""), ", ")))
