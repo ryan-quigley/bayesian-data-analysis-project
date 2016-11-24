@@ -24,16 +24,20 @@ qt$kill.rate <- round(qt$body.count / qt$hours, 2)
 qt <- qt[, c(1,6,5,3,2,4,7)]
 ```
 
-### Data Summary
+---
 
-##### Quentin Taratino Movie Data  
+# I. Data Summary  
+
+---
+
+### Taratino Movie Data  
 Meta data extracted from [IMDB](http://www.imdb.com/)
 
 ```{r, echo = FALSE}
 knitr::kable(qt, align = "l")
 ```
 
-##### Quentin Taratino Body Count Summary  
+### Taratino Body Count Summary  
 
 ```{r, echo = FALSE}
 bc.df <- data.frame(rbind(summary(qt$body.count), summary(qt$body.count[qt$body.count != max(qt$body.count)])), 
@@ -41,23 +45,21 @@ bc.df <- data.frame(rbind(summary(qt$body.count), summary(qt$body.count[qt$body.
                     check.names = FALSE, 
                     row.names = c("All Obs.", "Exclude Inglorious Bastards"))
 knitr::kable(bc.df, align = "l")
-qt.all <- qt
-qt <- qt[-7, ]
 ```
 
 Regardless of whether the large outlier associated with *Inglorious Bastards* is included, the sample mean and sample variance differ significantly: this suggests the Poisson model may not be a very good fit.
 
-##### Movie Database Sample  
+### Movie Database Sample  
 
 * Dataset does not contain movies with 0 deaths
 * Filter conditions:
     - year: 1991-2013
     - rating: R, Unrated, or NR
-    - genre: crime, drama, thriller, action, adventure, war, western
+    - genre: crime, drama, thriller, action, adventure, war, western, mystery
     - director: not Quentin
 * Sample size: 244
 
-Kill rate per hour:  
+Kill rate per hour broken down by genre (this is a rough summary as many movies with fall into multiple categories):  
 ```{r, echo = FALSE}
 ## Genre list for project dataset
 qt.g <- unique(unlist(strsplit(paste(qt$genre, collapse = ", ", sep = ""), ", ")))
@@ -72,13 +74,38 @@ for (i in seq_along(dc.g)) {
 }
 
 ## Filter death count dataset
-## 1) Rating R or Not Rates
+## 1) Rating R or Not Rated
 ## 2) Year later than 1991 (earliest is 1992)
 ## 3) Genre Match
 dc.filt <- dc[dc$MPAA_Rating %in% c("R", "Unrated", "NR") & dc$Year > 1991 & dc$Genre_Match == TRUE, ]
 rownames(dc.filt) <- 1:nrow(dc.filt)
-summary(dc.filt$Kill_Rate)
+genre.sum <- data.frame(N = c(sum(dc.filt$Genre_Crime), sum(dc.filt$Genre_Drama), sum(dc.filt$Genre_Thriller), sum(dc.filt$Genre_Action),
+                 sum(dc.filt$Genre_Adventure), sum(dc.filt$Genre_War), sum(dc.filt$Genre_Western), sum(dc.filt$Genre_Mystery)), 
+           rbind(summary(dc.filt$Kill_Rate[dc.filt$Genre_Crime == 1]), summary(dc.filt$Kill_Rate[dc.filt$Genre_Drama == 1]), summary(dc.filt$Kill_Rate[dc.filt$Genre_Thriller == 1]),
+                 summary(dc.filt$Kill_Rate[dc.filt$Genre_Action == 1]), summary(dc.filt$Kill_Rate[dc.filt$Genre_Adventure == 1]), summary(dc.filt$Kill_Rate[dc.filt$Genre_War == 1]),
+                 summary(dc.filt$Kill_Rate[dc.filt$Genre_Western == 1]), summary(dc.filt$Kill_Rate[dc.filt$Genre_Mystery == 1])), 
+           row.names = qt.g, 
+           check.names = FALSE)
+knitr::kable(genre.sum, align = "l")
 ```
+
+War, what is it good for...
+
+```{r, echo = FALSE}
+war <- data.frame(rbind(summary(dc.filt$Kill_Rate[dc.filt$Genre_War == 0]), summary(dc.filt$Kill_Rate[dc.filt$Genre_War == 1])), row.names = c("Not war", "War"), check.names = FALSE)
+knitr::kable(war, align = "l")
+```
+
+```{r, echo = FALSE}
+qt.all <- qt
+## Remove Inglorious Bastards
+qt <- qt[-7, ]
+```
+---
+
+# II. Model
+
+---
 
 ### Sampling Distribution: Poisson with rate and exposure
 
@@ -117,7 +144,7 @@ axis(2, at = seq.int(0,400,100), col = "gray50", lwd = 0, lwd.tick = 1)
 title(xlab = "Movie Duration (hours)", ylab = "Body Count")
 ```
   
-### Likelihood
+### Likelihood (Excluding Inglorious Bastards)
 A necessary and sufficient condition to get product of identical distributions is  
 $$p(y_1,...y_n ~|~ s_n) = \frac{s_n!}{y_1!,...,y_n!} \prod\limits_{i=1}^n \left(\frac{1}{n}\right)^{y_i}$$
 For every $n$, where $s_n = y_1 + ... + y_n$. Assuming [NEEDS JUSTIFICATION] this condition holds, the likelihood is:
@@ -131,22 +158,22 @@ p(y ~|~ \theta) & \propto \theta^{\left(\sum\limits_{i=1}^n y_i\right)} \exp\lef
     
 ### Conjugate Prior: Gamma
 
-[Interactive conjugate prior graphic](https://ryan-quigley.shinyapps.io/BDAproject/) using [data](https://figshare.com/articles/On_screen_movie_kill_counts_for_hundreds_of_films/889719) compiled by [Randal Olson](http://www.randalolson.com/) from the site: http://www.moviebodycounts.com/  
+[Data](https://figshare.com/articles/On_screen_movie_kill_counts_for_hundreds_of_films/889719) compiled by [Randal Olson](http://www.randalolson.com/) from the site: http://www.moviebodycounts.com/  
 
 ```{r, echo = FALSE}
 h <- 5
 alpha <- 1
-beta <- 0.023
+beta <- 0.035
 
-d <- density(dc.filt$Kill_Rate, kernel = "epanechnikov", bw = h, from = 0, to = 400)
+d <- density(dc.filt$Kill_Rate[dc.filt$Genre_War == 0], kernel = "epanechnikov", bw = h, from = 0, to = 250)
 plot(1,0.01, ann = FALSE, axes = FALSE,
-     xlim = c(0, 400), ylim = c(0, 0.035), 
+     xlim = c(0, 250), ylim = c(0, 0.04), 
      bty = "n", type = "n")
-hist(dc.filt$Kill_Rate, breaks = 30, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
+hist(dc.filt$Kill_Rate[dc.filt$Genre_War == 0], breaks = 30, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
 lines(d, col = "violetred", lwd = 1.5)
-axis(1, at = seq.int(0, 400, 50), labels = NA)
-axis(1, at = seq.int(0, 400, 100), lwd = 0, lwd.ticks = 0)
-axis(2, at = seq.int(0, 0.035, 0.01))
+axis(1, at = seq.int(0, 250, 50), labels = NA)
+axis(1, at = seq.int(0, 250, 100), lwd = 0, lwd.ticks = 0)
+axis(2, at = seq.int(0, 0.04, 0.01))
     
 ## Gamma parameter controls
 g.mean <- alpha/beta
@@ -154,25 +181,25 @@ g.mode <- (alpha-1)/beta
 g.var <- alpha/(beta)^2
 
 ## Plot theoretical gamma distribution
-curve(dgamma(x, shape = alpha, rate = beta), from = 0, to = 400, add = TRUE, lty = 2, col = "slateblue")
+curve(dgamma(x, shape = alpha, rate = beta), from = 0, to = 250, add = TRUE, lty = 2, col = "slateblue")
 #legend("top", legend = paste(c("Mean =", "Mode =", "Variance ="), c(g.mean, g.mode, g.var)), bty = "n")
-legend("top", legend = c("KDE", "Gamma"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
+legend("top", legend = c("Gamma", "Kernel density estimate"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
 title(xlab = expression(theta), ylab = "Density")
 ```
 
-From the density histogram above, the density appears to be monotonically decreasing in the interval $(0,\infty)$ suggesting a shape parameter $\alpha = 1$. The vast majority of the data is less than 300, so we solve the following equation for $\beta$ taking $\alpha = 1$:
+From the density histogram above, the density appears to be monotonically decreasing in the interval $(0,\infty)$ suggesting a shape parameter $\alpha = 1$. The vast majority of the data is less than 200, so we solve the following equation for $\beta$ taking $\alpha = 1$:
 $$\begin{align*}
-0.999 & = \int\limits_0^{300} \beta e^{-\beta\theta} d\theta \\
-& = 1 - e^{-300\beta} \\
-\implies \beta & = \frac{-1}{300} \log(0.001) \\
-& = 0.023
+0.999 & = \int\limits_0^{200} \beta e^{-\beta\theta} d\theta \\
+& = 1 - e^{-200\beta} \\
+\implies \beta & = \frac{-1}{200} \log(0.001) \\
+& = 0.035
 \end{align*}$$
 Therefore, the conjugate prior distribution of $\theta$ is:
-$$p(\theta ~|~ \alpha = 1, \beta = 0.023) \propto e^{-(0.023)\cdot\theta}$$
+$$p(\theta ~|~ \alpha = 1, \beta = 0.035) \propto e^{-(0.035)\cdot\theta}$$
 
 ### Posterior Distribution  
 
-In general, the posterior distribution is Gamma$\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$. Thus, the posterior distribution of $\theta$ is Gamma(186, 18.356)
+In general, the posterior distribution is Gamma$\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$. Thus, the posterior distribution of $\theta$ is Gamma(186, 18.683)
 
 ```{r, echo = FALSE}
 t.sum <- sum(qt$hours)
@@ -233,6 +260,12 @@ names(ppd.df) <- c("Movie Duration (hours)", "Most Likely Value (body count)", "
 knitr::kable(ppd.df, align = "l")
 ```
 
+---
+
+# III. Model Checking  
+
+---
+
 ### Sensitivity to Prior Distribution
 
 In this section we analyze the effects of different prior distributions on posterior inference. First we consider the effects of a noninformative prior instead of the gamma conjugate prior. The Jeffreys prior for $\theta$ follows from the Fisher information calculation below:  
@@ -270,6 +303,22 @@ n.obs <- length(qt$body.count)
 theta.sim <- rgamma(m, shape = alpha.post, rate = beta.post)
 ```
 
+##### Minimum
+
+```{r}
+yrep <- mapply(rpois, n = n.obs, lambda = (theta.sim*qt$hours[qt$body.count == min(qt$body.count)]))
+obs.min <- min(qt$body.count)    # observed minimum
+sim.min <- apply(yrep, 2, min)   # simulated minimum
+pval <- length(sim.min[sim.min >= obs.min]) / m
+```
+```{r, echo = FALSE}
+hist(sim.min, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,100), ylim = c(0,0.15))
+lines(rep(obs.min, 2), c(0, 0.15), col = "red", lwd = 1.5)
+mtext(paste("p-value:",pval), side = 3)
+```
+
+**Conclusion**:  
+
 ##### Maximum
 
 ```{r}
@@ -286,20 +335,21 @@ arrows(obs.max + 5, 0.08, 100, 0.08, code = 1, length = 0.1)
 text(100, 0.08, paste("Observed Max =", obs.max), pos = 4)
 ```
 
-**Conclusion**: The maximum of the dataset is inconsistent with our model. [NEED MORE INTERPRETATION/DETAIL]
+**Conclusion**: 
 
-##### Minimum
+##### Range of data (INCOMPLETE)
 
 ```{r}
-yrep <- mapply(rpois, n = n.obs, lambda = (theta.sim*qt$hours[qt$body.count == min(qt$body.count)]))
-obs.min <- min(qt$body.count)    # observed minimum
-sim.min <- apply(yrep, 2, min)   # simulated minimum
-pval <- length(sim.min[sim.min >= obs.min]) / m
+t.range <- range(qt$hours)
+obs.range <- diff(range(qt$body.count))    # observed variance
+sim.itmd <- apply(yrep, 2, range)*t.range
+sim.range <- apply(sim.itmd, 2, diff) # simulated variance
+pval <- length(sim.range[sim.range <= obs.range]) / m
 ```
 ```{r, echo = FALSE}
-hist(sim.min, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,100), ylim = c(0,0.15))
-lines(rep(obs.min, 2), c(0, 0.15), col = "red", lwd = 1.5)
-mtext(paste("p-value:",pval), side = 3)
+hist(sim.range, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,400), ylim = c(0,0.08))
+lines(rep(obs.range, 2), c(0, 0.08), col = "red", lwd = 1.5)
+mtext(paste("p-value:", pval), side = 3)
 ```
 
 **Conclusion**: 
@@ -335,24 +385,7 @@ mtext(paste("p-value:", pval), side = 3)
 
 **Conclusion**: 
 
-##### Range of data
-
-```{r}
-t.range <- range(qt$hours)
-obs.range <- diff(range(qt$body.count))    # observed variance
-sim.itmd <- apply(yrep, 2, range)*t.range
-sim.range <- apply(sim.itmd, 2, diff) # simulated variance
-pval <- length(sim.range[sim.range <= obs.range]) / m
-```
-```{r, echo = FALSE}
-hist(sim.range, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,400), ylim = c(0,0.08))
-lines(rep(obs.range, 2), c(0, 0.08), col = "red", lwd = 1.5)
-mtext(paste("p-value:", pval), side = 3)
-```
-
-**Conclusion**: 
-
-##### Ratio: Sample Mean to Sample Variance
+##### Ratio: Sample Mean to Sample Variance (INCOMPLETE)
 
 ```{r}
 obs.mean <- mean(qt$body.count)    # observed mean
@@ -376,4 +409,6 @@ Given the plot structure of movies we would not expect the kill rate to be const
 
 ### Alternative Models
 
-Comment on the negative binomial as a robust alternative to poisson.
+ * Negative binomial as a robust alternative to poisson.
+ * Poisson regression
+ * Hierachichal model
