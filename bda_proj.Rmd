@@ -279,9 +279,11 @@ sim.max <- apply(yrep, 2, max)   # simulated maximum
 pval <- length(sim.max[sim.max <= obs.max]) / m
 ```
 ```{r, echo = FALSE}
-hist(sim.max, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,400), ylim = c(0, 0.06))
-lines(rep(obs.max, 2), c(0, 0.06), col = "red", lwd = 1.5)
-mtext(paste("p-value:",pval), side = 3)
+hist(sim.max, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,400), ylim = c(0, 0.12))
+lines(rep(obs.max, 2), c(0, 0.12), col = "red", lwd = 1.5)
+mtext(paste("p-value =",pval), side = 3)
+arrows(obs.max + 5, 0.08, 100, 0.08, code = 1, length = 0.1)
+text(100, 0.08, paste("Observed Max =", obs.max), pos = 4)
 ```
 
 **Conclusion**: The maximum of the dataset is inconsistent with our model. [NEED MORE INTERPRETATION/DETAIL]
@@ -295,14 +297,14 @@ sim.min <- apply(yrep, 2, min)   # simulated minimum
 pval <- length(sim.min[sim.min >= obs.min]) / m
 ```
 ```{r, echo = FALSE}
-hist(sim.min, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,100), ylim = c(0,0.08))
-lines(rep(obs.min, 2), c(0, 0.08), col = "red", lwd = 1.5)
+hist(sim.min, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,100), ylim = c(0,0.15))
+lines(rep(obs.min, 2), c(0, 0.15), col = "red", lwd = 1.5)
 mtext(paste("p-value:",pval), side = 3)
 ```
 
 **Conclusion**: 
 
-##### Sample mean
+##### Sample mean (INCOMPLETE)
 
 ```{r}
 t.mean <- mean(qt$hours)
@@ -318,7 +320,7 @@ mtext(paste("p-value:", pval), side = 3)
 
 **Conclusion**: 
 
-##### Sample variance
+##### Sample variance (INCOMPLETE)
 
 ```{r}
 obs.var <- var(qt$body.count)    # observed variance
@@ -343,8 +345,8 @@ sim.range <- apply(sim.itmd, 2, diff) # simulated variance
 pval <- length(sim.range[sim.range <= obs.range]) / m
 ```
 ```{r, echo = FALSE}
-hist(sim.range, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,400), ylim = c(0,0.06))
-lines(rep(obs.range, 2), c(0, 0.06), col = "red", lwd = 1.5)
+hist(sim.range, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,400), ylim = c(0,0.08))
+lines(rep(obs.range, 2), c(0, 0.08), col = "red", lwd = 1.5)
 mtext(paste("p-value:", pval), side = 3)
 ```
 
