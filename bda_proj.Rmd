@@ -135,14 +135,6 @@ Wikipedia:
 * The probability of an event in an interval is proportional to the length of the interval.
 
 Not an assumption but a result of the sampling distribution: E[$y(t) | \theta$] = Var($y(t) | \theta$) = $\theta \cdot t$
-    
-```{r, echo = FALSE, eval = FALSE}
-plot(qt$hours, qt$body.count, ann = FALSE, axes = FALSE, xlim = c(1.5, 3), col = "violetred", pch = 4)
-box(col = "gray50", lty = 1)
-axis(1, at = seq.int(1.5, 3, 0.5), col = "gray50", lwd = 0, lwd.tick = 1)
-axis(2, at = seq.int(0,400,100), col = "gray50", lwd = 0, lwd.tick = 1)
-title(xlab = "Movie Duration (hours)", ylab = "Body Count")
-```
   
 ### Likelihood (Excluding Inglorious Bastards)
 A necessary and sufficient condition to get product of identical distributions is  
@@ -294,27 +286,38 @@ Additionally, we will examine the effect of choosing a conjugate gamma prior dis
 
 ### Posterior Predictive Checking  
 The observed data should look plausible under the posterior predictive distribution
+```{r, echo = FALSE}
+plot(qt$hours, qt$body.count, ann = FALSE, axes = FALSE, xlim = c(1.5, 3), ylim = c(0,70), col = "violetred", pch = 4)
+#box(col = "gray50", lty = 1)
+axis(1, at = seq.int(1.5, 3, 0.5), col = "gray50")
+axis(2, at = seq.int(0,70,10), col = "gray50")
+title(xlab = "Movie Duration (hours)", ylab = "Body Count")
+```
+
+Correlation between body count and duration: `r round(cor(qt$hours, qt$body.count), 2)`  
 
 ```{r}
 ## Simulation set=up
 set.seed(2016)
-m <- 100000
+m <- 500000
 n.obs <- length(qt$body.count)
 theta.sim <- rgamma(m, shape = alpha.post, rate = beta.post)
+t.sim <- runif(m, min = min(qt$hours), max = max(qt$hours))
+yrep <- round(mapply(rpois, n = n.obs, lambda = theta.sim*t.sim))
 ```
 
 ##### Minimum
 
 ```{r}
-yrep <- mapply(rpois, n = n.obs, lambda = (theta.sim*qt$hours[qt$body.count == min(qt$body.count)]))
 obs.min <- min(qt$body.count)    # observed minimum
 sim.min <- apply(yrep, 2, min)   # simulated minimum
 pval <- length(sim.min[sim.min >= obs.min]) / m
 ```
 ```{r, echo = FALSE}
-hist(sim.min, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,100), ylim = c(0,0.15))
-lines(rep(obs.min, 2), c(0, 0.15), col = "red", lwd = 1.5)
-mtext(paste("p-value:",pval), side = 3)
+hist(sim.min, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,40), ylim = c(0,0.15), col = "#1f78b4", border = "#a6cee3")
+lines(rep(obs.min, 2), c(0, 0.12), col = "#e31a1c", lwd = 1.5)
+mtext(paste("p-value:", round(pval, 2)), side = 3)
+text(obs.min, 0.12,  obs.min, pos = 3, offset = 0.5)
 ```
 
 **Conclusion**:  
@@ -322,82 +325,96 @@ mtext(paste("p-value:",pval), side = 3)
 ##### Maximum
 
 ```{r}
-yrep <- mapply(rpois, n = n.obs, lambda = (theta.sim*qt$hours[qt$body.count == max(qt$body.count)]))
 obs.max <- max(qt$body.count)    # observed maximum
 sim.max <- apply(yrep, 2, max)   # simulated maximum
 pval <- length(sim.max[sim.max <= obs.max]) / m
 ```
 ```{r, echo = FALSE}
-hist(sim.max, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,400), ylim = c(0, 0.12))
-lines(rep(obs.max, 2), c(0, 0.12), col = "red", lwd = 1.5)
-mtext(paste("p-value =",pval), side = 3)
-arrows(obs.max + 5, 0.08, 100, 0.08, code = 1, length = 0.1)
-text(100, 0.08, paste("Observed Max =", obs.max), pos = 4)
+hist(sim.max, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,80), ylim = c(0, 0.12), col = "#1f78b4", border = "#a6cee3")
+lines(rep(obs.max, 2), c(0, 0.10), col = "#e31a1c", lwd = 1.5)
+mtext(paste("p-value =", round(pval, 2)), side = 3)
+text(obs.max, 0.10, obs.max, pos = 3)
 ```
 
 **Conclusion**: 
 
-##### Range of data (INCOMPLETE)
+##### Range
 
 ```{r}
-t.range <- range(qt$hours)
-obs.range <- diff(range(qt$body.count))    # observed variance
-sim.itmd <- apply(yrep, 2, range)*t.range
-sim.range <- apply(sim.itmd, 2, diff) # simulated variance
+obs.range <- diff(range(qt$body.count))
+sim.itmd <- apply(yrep, 2, range)
+sim.range <- apply(sim.itmd, 2, diff)
 pval <- length(sim.range[sim.range <= obs.range]) / m
 ```
 ```{r, echo = FALSE}
-hist(sim.range, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,400), ylim = c(0,0.08))
-lines(rep(obs.range, 2), c(0, 0.08), col = "red", lwd = 1.5)
-mtext(paste("p-value:", pval), side = 3)
+hist(sim.range, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,80), ylim = c(0,0.12), col = "#1f78b4", border = "#a6cee3")
+lines(rep(obs.range, 2), c(0, 0.10), col = "#e31a1c", lwd = 1.5)
+mtext(paste("p-value:", round(pval, 2)), side = 3)
+text(obs.range, 0.10, obs.range, pos = 3)
 ```
 
 **Conclusion**: 
 
-##### Sample mean (INCOMPLETE)
-
-```{r}
-t.mean <- mean(qt$hours)
-obs.mean <- mean(qt$body.count)*t.mean    # observed mean
-sim.mean <- apply(yrep, 2, mean)*t.mean   # simulated mean
-pval <- length(sim.mean[sim.mean >= obs.mean]) / m
-```
-```{r, echo = FALSE}
-hist(sim.mean, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(120,240), ylim = c(0,0.05))
-lines(rep(obs.mean, 2), c(0, 0.05), col = "red", lwd = 1.5)
-mtext(paste("p-value:", pval), side = 3)
-```
-
-**Conclusion**: 
-
-##### Sample variance (INCOMPLETE)
-
-```{r}
-obs.var <- var(qt$body.count)    # observed variance
-sim.var <- apply(yrep*t.mean, 2, var)   # simulated variance
-pval <- length(sim.var[sim.var <= obs.var]) / m
-```
-```{r, echo = FALSE}
-hist(sim.var, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,3000), ylim = c(0,0.0025))
-lines(rep(obs.var, 2), c(0, 0.0025), col = "red", lwd = 1.5)
-mtext(paste("p-value:", pval), side = 3)
-```
-
-**Conclusion**: 
-
-##### Ratio: Sample Mean to Sample Variance (INCOMPLETE)
+##### Sample Mean
 
 ```{r}
 obs.mean <- mean(qt$body.count)    # observed mean
 sim.mean <- apply(yrep, 2, mean)   # simulated mean
 pval <- length(sim.mean[sim.mean >= obs.mean]) / m
+```
+```{r, echo = FALSE}
+hist(sim.mean, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,50), ylim = c(0,0.12), col = "#1f78b4", border = "#a6cee3")
+lines(rep(obs.mean, 2), c(0, 0.10), col = "#e31a1c", lwd = 1.5)
+mtext(paste("p-value:", round(pval, 2)), side = 3)
+text(obs.mean, 0.10, obs.mean, pos = 3)
+```
 
-obs.var <- var(qt$body.count)    # observed variance
+**Conclusion**: 
+
+##### Sample Median
+
+```{r}
+obs.median <- median(qt$body.count)    # observed median
+sim.median <- apply(yrep, 2, median)   # simulated median
+pval <- length(sim.median[sim.median >= obs.median]) / m
+```
+```{r, echo = FALSE}
+hist(sim.median, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,50), ylim = c(0,0.12), col = "#1f78b4", border = "#a6cee3")
+lines(rep(obs.median, 2), c(0, 0.10), col = "#e31a1c", lwd = 1.5)
+mtext(paste("p-value:", round(pval, 2)), side = 3)
+text(obs.median, 0.10, obs.median, pos = 3)
+```
+
+**Conclusion**: 
+
+##### Sample Variance
+
+```{r}
+obs.var <- var(qt$body.count)           # observed variance
 sim.var <- apply(yrep, 2, var)   # simulated variance
 pval <- length(sim.var[sim.var <= obs.var]) / m
 ```
 ```{r, echo = FALSE}
+hist(sim.var, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,700), ylim = c(0,0.04), col = "#1f78b4", border = "#a6cee3")
+lines(rep(obs.var, 2), c(0, 0.035), col = "#e31a1c", lwd = 1.5)
+mtext(paste("p-value:", pval), side = 3)
+text(obs.var, 0.035, round(obs.var, 2), pos = 3)
+```
 
+**Conclusion**: 
+
+##### Ratio: Sample Mean / Sample Variance
+
+```{r}
+obs.ratio <- obs.mean / obs.var
+sim.ratio <- sim.mean / sim.var
+pval <- length(sim.ratio[sim.ratio >= obs.ratio]) / m
+```
+```{r, echo = FALSE}
+hist(sim.ratio, breaks = 100, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,80), ylim = c(0,0.5), col = "#1f78b4", border = "#a6cee3")
+lines(rep(obs.ratio, 2), c(0, 0.45), col = "#e31a1c", lwd = 1.5)
+mtext(paste("p-value:", pval), side = 3)
+text(obs.ratio, 0.45, round(obs.ratio, 2), pos = 3)
 ```
 
 **Conclusion**: 
