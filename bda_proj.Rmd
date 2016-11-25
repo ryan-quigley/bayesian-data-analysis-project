@@ -338,7 +338,7 @@ text(obs.max, 0.10, obs.max, pos = 3)
 
 **Conclusion**: 
 
-##### Range
+##### Range (Full)
 
 ```{r}
 obs.range <- diff(range(qt$body.count))
@@ -351,6 +351,22 @@ hist(sim.range, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,80), ylim =
 lines(rep(obs.range, 2), c(0, 0.10), col = "#e31a1c", lwd = 1.5)
 mtext(paste("p-value:", round(pval, 2)), side = 3)
 text(obs.range, 0.10, obs.range, pos = 3)
+```
+
+**Conclusion**: 
+
+##### Range (Interquartile)
+
+```{r}
+obs.IQRange <- IQR(qt$body.count)
+sim.IQRange <- apply(yrep, 2, IQR)
+pval <- length(sim.IQRange[sim.IQRange <= obs.IQRange]) / m
+```
+```{r, echo = FALSE}
+hist(sim.IQRange, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,30), ylim = c(0,0.2), col = "#1f78b4", border = "#a6cee3")
+lines(rep(obs.IQRange, 2), c(0, 0.18), col = "#e31a1c", lwd = 1.5)
+mtext(paste("p-value:", round(pval, 2)), side = 3)
+text(obs.IQRange, 0.18, obs.IQRange, pos = 3)
 ```
 
 **Conclusion**: 
@@ -383,6 +399,22 @@ hist(sim.median, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,50), ylim 
 lines(rep(obs.median, 2), c(0, 0.10), col = "#e31a1c", lwd = 1.5)
 mtext(paste("p-value:", round(pval, 2)), side = 3)
 text(obs.median, 0.10, obs.median, pos = 3)
+```
+
+**Conclusion**: 
+
+##### Sample Median Absolute Deviation
+
+```{r}
+obs.mad <- mad(qt$body.count)    # observed median
+sim.mad <- apply(yrep, 2, mad)   # simulated median
+pval <- length(sim.mad[sim.mad >= obs.mad]) / m
+```
+```{r, echo = FALSE}
+hist(sim.mad, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,50), ylim = c(0,0.3), col = "#1f78b4", border = "#a6cee3")
+lines(rep(obs.mad, 2), c(0, 0.275), col = "#e31a1c", lwd = 1.5)
+mtext(paste("p-value:", round(pval, 2)), side = 3)
+text(obs.mad, 0.275, round(obs.mad, 2), pos = 3)
 ```
 
 **Conclusion**: 
