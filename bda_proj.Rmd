@@ -30,6 +30,9 @@ qt <- qt[, c(1,6,5,3,2,4,7)]
 
 ---
 
+> "A few numbers are approximated due to the impossibility of counting precisely how many ninjas are decapitated in Kill Bill Vol. 1, how many Nazis are in the theater when it gets set afire in Inglorious Basterds, and how many people fall in the never-ending shoot-out scene at the end of Django Unchained."  
+> - [Vanity Fair](http://www.vanityfair.com/hollywood/2013/02/quentin-tarantino-deaths-movies)
+
 ### Taratino Movie Data  
 Meta data extracted from [IMDB](http://www.imdb.com/)
 
@@ -461,3 +464,4 @@ Given the plot structure of movies we would not expect the kill rate to be const
  * Negative binomial as a robust alternative to poisson.
  * Poisson regression
  * Hierachichal model
+ 
