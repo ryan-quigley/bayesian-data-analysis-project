@@ -21,8 +21,10 @@ qt <- read.table("qt_data.txt",
                  strip.white = TRUE,
                  stringsAsFactors = FALSE)
 qt$kill.rate <- round(qt$body.count / qt$hours, 2)
-qt$model.include <- c(1,1,1,0,1,1,0,0,1)
-qt <- qt[, c(1,6,5,3,2,4,7,8)]
+qt$model.1 <- c(1,1,1,0,1,1,0,0,1)
+qt$model.2 <- c(0,0,0,1,0,0,0,1,0)
+qt$model.3 <- c(0,0,0,0,0,0,1,0,0)
+qt <- qt[, c(1,6,5,3,2,4,7,8,9,10)]
 ```
 
 ---
@@ -41,63 +43,57 @@ Meta data extracted from [IMDB](http://www.imdb.com/)
 knitr::kable(qt, align = "l")
 ```
 
-### Taratino Body Count Summary  
-
-```{r, echo = FALSE}
-bc.df <- data.frame(rbind(summary(qt$body.count[qt$model.include == 1])), 
-                    Var = var(qt$body.count[qt$model.include == 1]), 
-                    check.names = FALSE)
-knitr::kable(bc.df, align = "l")
-```
-
 ### Movie Database Sample  
 
 * Dataset does not contain movies with 0 deaths
 * Filter conditions:
     - year: 1991-2013
     - rating: R, Unrated, or NR
-    - genre: crime, drama, thriller, action, western, mystery
+    - genre:
+        - Model 1: crime, drama, thriller, action, western, mystery
+        - Model 2: action, thriller, drama, western
+        - Model 3: war
     - director: not Quentin
-* Sample size: 243
 
-Kill rate per hour broken down by genre (this is a rough summary as many movies will fall into multiple categories):  
 ```{r, echo = FALSE}
 qt.all <- qt
-## Remove Inglorious Bastards
-qt <- qt[qt$model.include == 1, ]
+qt.m1 <- qt[qt$model.1 == 1, ]
+qt.m2 <- qt[qt$model.2 == 1, ]
+qt.m3 <- qt[qt$model.3 == 1, ]
+
 ## Genre list for project dataset
-qt.g <- unique(unlist(strsplit(paste(qt$genre, collapse = ", ", sep = ""), ", ")))
+qt.g.m1 <- unique(unlist(strsplit(paste(qt.m1$genre, collapse = ", ", sep = ""), ", ")))
+qt.g.m2 <- unique(unlist(strsplit(paste(qt.m2$genre, collapse = ", ", sep = ""), ", ")))
+qt.g.m3 <- unique(unlist(strsplit(paste(qt.m3$genre, collapse = ", ", sep = ""), ", ")))
 
 ## Splitting genre list for each movie in death count dataset
 dc.g <- strsplit(tolower(dc$Genre), "|", fixed = TRUE)
 
 ## Checking if any genres match those of project genre list
-dc$Genre_Match <- logical(1)
+dc$Genre_Match_M1 <- logical(1)
+dc$Genre_Match_M2 <- logical(1)
+dc$Genre_Match_M3 <- logical(1)
 for (i in seq_along(dc.g)) {
-  dc$Genre_Match[i] <- all(dc.g[[i]] %in% qt.g)
+  dc$Genre_Match_M1[i] <- all(dc.g[[i]] %in% qt.g.m1)
+  dc$Genre_Match_M2[i] <- all(dc.g[[i]] %in% qt.g.m2)
+  dc$Genre_Match_M3[i] <- all(dc.g[[i]] %in% qt.g.m3)
 }
 
 ## Filter death count dataset
-## 1) Rating R or Not Rated
-## 2) Year later than 1991 (earliest is 1992)
-## 3) Genre Match
-dc.filt <- dc[dc$MPAA_Rating %in% c("R", "Unrated", "NR") & dc$Year > 1991 & dc$Genre_Match == TRUE, ]
-rownames(dc.filt) <- 1:nrow(dc.filt)
-genre.sum <- data.frame(N = c(sum(dc.filt$Genre_Crime), sum(dc.filt$Genre_Drama), sum(dc.filt$Genre_Thriller), sum(dc.filt$Genre_Action),
-                 sum(dc.filt$Genre_Mystery), sum(dc.filt$Genre_Western)), 
-           rbind(summary(dc.filt$Kill_Rate[dc.filt$Genre_Crime == 1]), summary(dc.filt$Kill_Rate[dc.filt$Genre_Drama == 1]),
-                 summary(dc.filt$Kill_Rate[dc.filt$Genre_Thriller == 1]),
-                 summary(dc.filt$Kill_Rate[dc.filt$Genre_Action == 1]), summary(dc.filt$Kill_Rate[dc.filt$Genre_Mystery == 1]), 
-                 summary(dc.filt$Kill_Rate[dc.filt$Genre_Western == 1])), 
-           row.names = qt.g, 
-           check.names = FALSE)
+dc.filt.m1 <- dc[dc$MPAA_Rating %in% c("R", "Unrated", "NR") & dc$Year > 1991 & dc$Genre_Match_M1 == TRUE, ]
+dc.filt.m2 <- dc[dc$MPAA_Rating %in% c("R", "Unrated", "NR") & dc$Year > 1991 & dc$Genre_Match_M2 == TRUE, ]
+dc.filt.m3 <- dc[dc$MPAA_Rating %in% c("R", "Unrated", "NR") & dc$Year > 1991 & dc$Genre_War == 1, ]
+genre.sum <- data.frame(N = rbind(length(dc.filt.m1$Kill_Rate), length(dc.filt.m2$Kill_Rate), length(dc.filt.m3$Kill_Rate)), 
+                        rbind(summary(dc.filt.m1$Kill_Rate), summary(dc.filt.m2$Kill_Rate), summary(dc.filt.m3$Kill_Rate)),
+                        row.names = c("Model 1", "Model 2", "Model 3"),
+                        check.names = FALSE)
 knitr::kable(genre.sum, align = "l")
 ```
 
 
 ---
 
-# II. Model - Excludes 3 High Count Movies
+# II. Models
 
 ---
 
@@ -133,44 +129,47 @@ Not an assumption but a result of the sampling distribution: E[$y(t) | \theta$] 
 ### Likelihood
 A necessary and sufficient condition to get product of identical distributions is  
 $$p(y_1,...y_n ~|~ s_n) = \frac{s_n!}{y_1!,...,y_n!} \prod\limits_{i=1}^n \left(\frac{1}{n}\right)^{y_i}$$
-For every $n$, where $s_n = y_1 + ... + y_n$. Assuming [NEEDS JUSTIFICATION] this condition holds, the likelihood is:
+For every $n$, where $s_n = y_1 + ... + y_n$. This condition is not reasonably justified if we group all the data together; however, once grouped into three models, the condition seems reasonable within each model. Assuming this condition holds, the likelihood is:
 
-$$\begin{align*}
-p(y ~|~ \theta) & \propto \theta^{\left(\sum\limits_{i=1}^n y_i\right)} \exp\left( -\theta \sum\limits_{i=1}^n t_i \right)  \\
-& \propto \theta^{185} e^{ -18.33 \cdot \theta}
-\end{align*}$$
+$$p(y ~|~ \theta) \propto \theta^{\left(\sum\limits_{i=1}^n y_i\right)} \exp\left( -\theta \sum\limits_{i=1}^n t_i \right)$$
 
-
+-----------------------------------------
+Model   Likelihood: $p(y ~|~ \theta)$
+------  ------------------
+ 1       $\propto \theta^{59}e^{-13.73\theta}$
+  
+ 2       $\propto \theta^{126}e^{-4.6\theta}$
+  
+ 3       $\propto \theta^{396}e^{-2.55\theta}$
+-----------------------------------------
     
 ### Conjugate Prior: Gamma
 
 [Data](https://figshare.com/articles/On_screen_movie_kill_counts_for_hundreds_of_films/889719) compiled by [Randal Olson](http://www.randalolson.com/) from the site: http://www.moviebodycounts.com/  
 
+##### Model 1:
+
 ```{r, echo = FALSE}
+## Conjugate prior stuff
 h <- 5
 alpha <- 1
 beta <- 0.046
 
-d <- density(dc.filt$Kill_Rate[dc.filt$Genre_War == 0], kernel = "epanechnikov", bw = h, from = 0, to = 250)
+d1 <- density(dc.filt.m1$Kill_Rate, kernel = "epanechnikov", bw = h, from = 0, to = 200)
 plot(1,0.01, ann = FALSE, axes = FALSE,
-     xlim = c(0, 250), ylim = c(0, 0.06), 
+     xlim = c(0, 200), ylim = c(0, 0.06), 
      bty = "n", type = "n")
-hist(dc.filt$Kill_Rate[dc.filt$Genre_War == 0], breaks = 30, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
-lines(d, col = "violetred", lwd = 1.5)
-axis(1, at = seq.int(0, 250, 50), labels = NA)
-axis(1, at = seq.int(0, 250, 100), lwd = 0, lwd.ticks = 0)
+hist(dc.filt.m1$Kill_Rate, breaks = 30, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
+lines(d1, col = "violetred", lwd = 1.5)
+axis(1, at = seq.int(0, 200, 50), labels = NA)
+axis(1, at = seq.int(0, 200, 100), lwd = 0, lwd.ticks = 0)
 axis(2, at = seq.int(0, 0.06, 0.01))
-    
-## Gamma parameter controls
-g.mean <- alpha/beta
-g.mode <- (alpha-1)/beta
-g.var <- alpha/(beta)^2
 
 ## Plot theoretical gamma distribution
-curve(dgamma(x, shape = alpha, rate = beta), from = 0, to = 250, add = TRUE, lty = 2, col = "slateblue")
+curve(dgamma(x, shape = alpha, rate = beta), from = 0, to = 200, add = TRUE, lty = 2, col = "slateblue")
 #legend("top", legend = paste(c("Mean =", "Mode =", "Variance ="), c(g.mean, g.mode, g.var)), bty = "n")
 legend("top", legend = c("Gamma", "Kernel density estimate"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
-title(xlab = expression(theta), ylab = "Density")
+title(main = "Model 1", xlab = expression(theta), ylab = "Density")
 ```
 
 From the density histogram above, the density appears to be monotonically decreasing in the interval $(0,\infty)$ suggesting a shape parameter $\alpha = 1$. The vast majority of the data is less than 100, so we solve the following equation for $\beta$ taking $\alpha = 1$:
@@ -182,6 +181,54 @@ $$\begin{align*}
 \end{align*}$$
 Therefore, the conjugate prior distribution of $\theta$ is:
 $$p(\theta ~|~ \alpha = 1, \beta = 0.046) \propto e^{-(0.046)\cdot\theta}$$
+##### Model 2: 
+
+```{r, echo = FALSE}
+## Conjugate prior stuff
+h <- 10
+alpha <- 1
+beta <- 0.046
+
+d2 <- density(dc.filt.m2$Kill_Rate, kernel = "epanechnikov", bw = h, from = 0, to = 100)
+plot(1,0.01, ann = FALSE, axes = FALSE,
+     xlim = c(0, 100), ylim = c(0, 0.06), 
+     bty = "n", type = "n")
+hist(dc.filt.m2$Kill_Rate, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
+lines(d2, col = "violetred", lwd = 1.5)
+axis(1, at = seq.int(0, 100, 20))
+axis(2, at = seq.int(0, 0.06, 0.01))
+
+## Plot theoretical gamma distribution
+curve(dgamma(x, shape = alpha, rate = beta), from = 0, to = 250, add = TRUE, lty = 2, col = "slateblue")
+#legend("top", legend = paste(c("Mean =", "Mode =", "Variance ="), c(g.mean, g.mode, g.var)), bty = "n")
+legend("top", legend = c("Gamma", "Kernel density estimate"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
+title(main = "Model 2", xlab = expression(theta), ylab = "Density")
+```
+
+##### Model 3: 
+
+```{r, echo = FALSE}
+## Conjugate prior stuff
+h <- 30
+alpha <- 1
+beta <- 0.046
+
+d3 <- density(dc.filt.m3$Kill_Rate, kernel = "epanechnikov", bw = h, from = 0, to = 350)
+plot(1,0.01, ann = FALSE, axes = FALSE,
+     xlim = c(0, 350), ylim = c(0, 0.02), 
+     bty = "n", type = "n")
+hist(dc.filt.m3$Kill_Rate, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
+lines(d3, col = "violetred", lwd = 1.5)
+axis(1, at = seq.int(0, 350, 50), labels = NA)
+axis(1, at = seq.int(0, 350, 100), lwd = 0, lwd.ticks = 0)
+axis(2, at = seq.int(0, 0.02, 0.005))
+
+## Plot theoretical gamma distribution
+#curve(dgamma(x, shape = alpha, rate = beta), from = 0, to = 250, add = TRUE, lty = 2, col = "slateblue")
+#legend("top", legend = paste(c("Mean =", "Mode =", "Variance ="), c(g.mean, g.mode, g.var)), bty = "n")
+legend("top", legend = c("Gamma", "Kernel density estimate"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
+title(main = "Model 3", xlab = expression(theta), ylab = "Density")
+```
 
 ### Posterior Distribution  
 
