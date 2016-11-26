@@ -21,7 +21,8 @@ qt <- read.table("qt_data.txt",
                  strip.white = TRUE,
                  stringsAsFactors = FALSE)
 qt$kill.rate <- round(qt$body.count / qt$hours, 2)
-qt <- qt[, c(1,6,5,3,2,4,7)]
+qt$model.include <- c(1,1,1,0,1,1,0,0,1)
+qt <- qt[, c(1,6,5,3,2,4,7,8)]
 ```
 
 ---
@@ -30,7 +31,7 @@ qt <- qt[, c(1,6,5,3,2,4,7)]
 
 ---
 
-> "A few numbers are approximated due to the impossibility of counting precisely how many ninjas are decapitated in Kill Bill Vol. 1, how many Nazis are in the theater when it gets set afire in Inglorious Basterds, and how many people fall in the never-ending shoot-out scene at the end of Django Unchained."  
+> "A few numbers are approximated due to the impossibility of counting precisely how many ninjas are decapitated in **Kill Bill Vol. 1**, how many Nazis are in the theater when it gets set afire in **Inglorious Basterds**, and how many people fall in the never-ending shoot-out scene at the end of **Django Unchained**."  
 > - [Vanity Fair](http://www.vanityfair.com/hollywood/2013/02/quentin-tarantino-deaths-movies)
 
 ### Taratino Movie Data  
@@ -43,14 +44,11 @@ knitr::kable(qt, align = "l")
 ### Taratino Body Count Summary  
 
 ```{r, echo = FALSE}
-bc.df <- data.frame(rbind(summary(qt$body.count), summary(qt$body.count[qt$body.count != max(qt$body.count)])), 
-                    Var = c(var(qt$body.count), var(qt$body.count[qt$body.count != max(qt$body.count)])), 
-                    check.names = FALSE, 
-                    row.names = c("All Obs.", "Exclude Inglorious Bastards"))
+bc.df <- data.frame(rbind(summary(qt$body.count[qt$model.include == 1])), 
+                    Var = var(qt$body.count[qt$model.include == 1]), 
+                    check.names = FALSE)
 knitr::kable(bc.df, align = "l")
 ```
-
-Regardless of whether the large outlier associated with *Inglorious Bastards* is included, the sample mean and sample variance differ significantly: this suggests the Poisson model may not be a very good fit.
 
 ### Movie Database Sample  
 
@@ -58,12 +56,15 @@ Regardless of whether the large outlier associated with *Inglorious Bastards* is
 * Filter conditions:
     - year: 1991-2013
     - rating: R, Unrated, or NR
-    - genre: crime, drama, thriller, action, adventure, war, western, mystery
+    - genre: crime, drama, thriller, action, western, mystery
     - director: not Quentin
-* Sample size: 244
+* Sample size: 243
 
-Kill rate per hour broken down by genre (this is a rough summary as many movies with fall into multiple categories):  
+Kill rate per hour broken down by genre (this is a rough summary as many movies will fall into multiple categories):  
 ```{r, echo = FALSE}
+qt.all <- qt
+## Remove Inglorious Bastards
+qt <- qt[qt$model.include == 1, ]
 ## Genre list for project dataset
 qt.g <- unique(unlist(strsplit(paste(qt$genre, collapse = ", ", sep = ""), ", ")))
 
@@ -73,7 +74,7 @@ dc.g <- strsplit(tolower(dc$Genre), "|", fixed = TRUE)
 ## Checking if any genres match those of project genre list
 dc$Genre_Match <- logical(1)
 for (i in seq_along(dc.g)) {
-  dc$Genre_Match[i] <- any(dc.g[[i]] %in% qt.g)
+  dc$Genre_Match[i] <- all(dc.g[[i]] %in% qt.g)
 }
 
 ## Filter death count dataset
@@ -83,30 +84,20 @@ for (i in seq_along(dc.g)) {
 dc.filt <- dc[dc$MPAA_Rating %in% c("R", "Unrated", "NR") & dc$Year > 1991 & dc$Genre_Match == TRUE, ]
 rownames(dc.filt) <- 1:nrow(dc.filt)
 genre.sum <- data.frame(N = c(sum(dc.filt$Genre_Crime), sum(dc.filt$Genre_Drama), sum(dc.filt$Genre_Thriller), sum(dc.filt$Genre_Action),
-                 sum(dc.filt$Genre_Adventure), sum(dc.filt$Genre_War), sum(dc.filt$Genre_Western), sum(dc.filt$Genre_Mystery)), 
-           rbind(summary(dc.filt$Kill_Rate[dc.filt$Genre_Crime == 1]), summary(dc.filt$Kill_Rate[dc.filt$Genre_Drama == 1]), summary(dc.filt$Kill_Rate[dc.filt$Genre_Thriller == 1]),
-                 summary(dc.filt$Kill_Rate[dc.filt$Genre_Action == 1]), summary(dc.filt$Kill_Rate[dc.filt$Genre_Adventure == 1]), summary(dc.filt$Kill_Rate[dc.filt$Genre_War == 1]),
-                 summary(dc.filt$Kill_Rate[dc.filt$Genre_Western == 1]), summary(dc.filt$Kill_Rate[dc.filt$Genre_Mystery == 1])), 
+                 sum(dc.filt$Genre_Mystery), sum(dc.filt$Genre_Western)), 
+           rbind(summary(dc.filt$Kill_Rate[dc.filt$Genre_Crime == 1]), summary(dc.filt$Kill_Rate[dc.filt$Genre_Drama == 1]),
+                 summary(dc.filt$Kill_Rate[dc.filt$Genre_Thriller == 1]),
+                 summary(dc.filt$Kill_Rate[dc.filt$Genre_Action == 1]), summary(dc.filt$Kill_Rate[dc.filt$Genre_Mystery == 1]), 
+                 summary(dc.filt$Kill_Rate[dc.filt$Genre_Western == 1])), 
            row.names = qt.g, 
            check.names = FALSE)
 knitr::kable(genre.sum, align = "l")
 ```
 
-War, what is it good for...
 
-```{r, echo = FALSE}
-war <- data.frame(rbind(summary(dc.filt$Kill_Rate[dc.filt$Genre_War == 0]), summary(dc.filt$Kill_Rate[dc.filt$Genre_War == 1])), row.names = c("Not war", "War"), check.names = FALSE)
-knitr::kable(war, align = "l")
-```
-
-```{r, echo = FALSE}
-qt.all <- qt
-## Remove Inglorious Bastards
-qt <- qt[-7, ]
-```
 ---
 
-# II. Model
+# II. Model - Excludes 3 High Count Movies
 
 ---
 
@@ -139,7 +130,7 @@ Wikipedia:
 
 Not an assumption but a result of the sampling distribution: E[$y(t) | \theta$] = Var($y(t) | \theta$) = $\theta \cdot t$
   
-### Likelihood (Excluding Inglorious Bastards)
+### Likelihood
 A necessary and sufficient condition to get product of identical distributions is  
 $$p(y_1,...y_n ~|~ s_n) = \frac{s_n!}{y_1!,...,y_n!} \prod\limits_{i=1}^n \left(\frac{1}{n}\right)^{y_i}$$
 For every $n$, where $s_n = y_1 + ... + y_n$. Assuming [NEEDS JUSTIFICATION] this condition holds, the likelihood is:
@@ -158,17 +149,17 @@ p(y ~|~ \theta) & \propto \theta^{\left(\sum\limits_{i=1}^n y_i\right)} \exp\lef
 ```{r, echo = FALSE}
 h <- 5
 alpha <- 1
-beta <- 0.035
+beta <- 0.046
 
 d <- density(dc.filt$Kill_Rate[dc.filt$Genre_War == 0], kernel = "epanechnikov", bw = h, from = 0, to = 250)
 plot(1,0.01, ann = FALSE, axes = FALSE,
-     xlim = c(0, 250), ylim = c(0, 0.04), 
+     xlim = c(0, 250), ylim = c(0, 0.06), 
      bty = "n", type = "n")
 hist(dc.filt$Kill_Rate[dc.filt$Genre_War == 0], breaks = 30, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
 lines(d, col = "violetred", lwd = 1.5)
 axis(1, at = seq.int(0, 250, 50), labels = NA)
 axis(1, at = seq.int(0, 250, 100), lwd = 0, lwd.ticks = 0)
-axis(2, at = seq.int(0, 0.04, 0.01))
+axis(2, at = seq.int(0, 0.06, 0.01))
     
 ## Gamma parameter controls
 g.mean <- alpha/beta
@@ -182,19 +173,19 @@ legend("top", legend = c("Gamma", "Kernel density estimate"), col = c("slateblue
 title(xlab = expression(theta), ylab = "Density")
 ```
 
-From the density histogram above, the density appears to be monotonically decreasing in the interval $(0,\infty)$ suggesting a shape parameter $\alpha = 1$. The vast majority of the data is less than 200, so we solve the following equation for $\beta$ taking $\alpha = 1$:
+From the density histogram above, the density appears to be monotonically decreasing in the interval $(0,\infty)$ suggesting a shape parameter $\alpha = 1$. The vast majority of the data is less than 100, so we solve the following equation for $\beta$ taking $\alpha = 1$:
 $$\begin{align*}
-0.999 & = \int\limits_0^{200} \beta e^{-\beta\theta} d\theta \\
-& = 1 - e^{-200\beta} \\
-\implies \beta & = \frac{-1}{200} \log(0.001) \\
-& = 0.035
+0.99 & = \int\limits_0^{100} \beta e^{-\beta\theta} d\theta \\
+& = 1 - e^{-100\beta} \\
+\implies \beta & = \frac{-1}{100} \log(0.01) \\
+& = 0.046
 \end{align*}$$
 Therefore, the conjugate prior distribution of $\theta$ is:
-$$p(\theta ~|~ \alpha = 1, \beta = 0.035) \propto e^{-(0.035)\cdot\theta}$$
+$$p(\theta ~|~ \alpha = 1, \beta = 0.046) \propto e^{-(0.046)\cdot\theta}$$
 
 ### Posterior Distribution  
 
-In general, the posterior distribution is Gamma$\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$. Thus, the posterior distribution of $\theta$ is Gamma(186, 18.683)
+In general, the posterior distribution is Gamma$\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$. Thus, the posterior distribution of $\theta$ is Gamma(60, 13.78)
 
 ```{r, echo = FALSE}
 t.sum <- sum(qt$hours)
@@ -228,22 +219,23 @@ p(\tilde{y} ~|~ y) & = \int\limits_0^{\infty} p(\tilde{y} ~|~ \theta)\cdot p(\th
 ```{r, echo = FALSE}
 t.new <- seq.int(1.5, 3, 0.5)
 beta.ppd <- beta.post/t.new
-post.preds <- mapply(dnbinom, x = 0:60, MoreArgs = list(size = rep(alpha.post, length(t.new)), prob = (beta.ppd/(beta.ppd + 1))))
+post.preds <- mapply(dnbinom, x = 0:35, MoreArgs = list(size = rep(alpha.post, length(t.new)), prob = (beta.ppd/(beta.ppd + 1))))
 x.modes <- apply(post.preds, 1, order, decreasing = TRUE)[1, ]
 modes <- post.preds[matrix(c(1:4, x.modes), nrow = 4)]
 post.preds[post.preds < 1e-05] <- NA
 col.vec <- c("violetred", "slateblue", "#d95f02", "#1b9e77")
 
-plot(1, 1, ann = FALSE, axes = FALSE, type = "n", lty = 3, col = "grey50", bty = "n", xlim = c(0, 60), ylim = c(0, 0.12))
+plot(1, 1, ann = FALSE, axes = FALSE, type = "n", lty = 3, col = "grey50", bty = "n", xlim = c(0, 35), ylim = c(0, 0.2))
 for (i in 1:4) {
-  points(0:60, post.preds[i, ], pch = 20, col = col.vec[i])
+  lines(0:35, post.preds[i, ], pch = 20, col = col.vec[i], type = "b", lwd = 0.5)
   lines(rep(x.modes[i] - 1, 2), c(-0.1, modes[i]), col = "grey50", lty = 3)
 }
-axis(1, seq.int(0,60,10), col = "gray50")
-axis(2, seq.int(0,0.12,0.02), col = "gray50")
+axis(1, seq.int(0,35,5), col = "gray50")
+axis(2, seq.int(0,0.2,0.02), col = "gray50")
 title(xlab = expression(tilde(y)), ylab = expression(paste("Pr(", tilde(y), ")", sep = "")))
 legend("topright", title = "Movie Duration (hours)", legend = t.new, col = col.vec, pch = 20, ncol = 2, bty = "n")
-text(x.modes - 1, modes, labels = round(modes, 3), pos = 3, offset = 0.75)
+#text(x.modes + 3, modes + 0.04, labels = round(modes, 3), pos = 4)
+#arrows(x.modes - 1, modes, x.modes + 3, modes + 0.04, length = 0.1, code = 1)
 points(x.modes - 1, rep(0, length(x.modes)), pch = 4, col = "black")
 ```
 
@@ -271,14 +263,14 @@ I_n(\theta) & = \text{E}\left\{ \left(\frac{\partial}{\partial \theta} \log p(y~
 & = \frac{1}{\theta} \cdot \sum\limits_{i=1}^n t_i \\
 \implies p(\theta) & \propto \sqrt{\frac{1}{\theta}}
 \end{align*}$$  
-This results in an improper prior; however, this does not prevent us from finding a posterior distribution for $\theta$ [WHY???]. The resulting posterior distribution for $\theta$ is Gamma$(185.5, 18.33)$. The posterior distribution parameters are nearly identical to those that resulted from a conjugate prior. The two posterior distributions considered in this analysis thus far are plotted below, which illustrates that the two posterior distributions are pratically identical. This suggests that the posterior distribution is dominated by the data and choice of sampling distribution.
+This results in an improper prior; however, this does not prevent us from finding a posterior distribution for $\theta$ [WHY???]. The resulting posterior distribution for $\theta$ is Gamma$(60.5, 13.733)$. The posterior distribution parameters are nearly identical to those that resulted from a conjugate prior. The two posterior distributions considered in this analysis thus far are plotted below, which illustrates that the two posterior distributions are pratically identical. This suggests that the posterior distribution is dominated by the data and choice of sampling distribution.
 
 ```{r, echo = FALSE}
 curve(dgamma(x, shape = y.sum + 0.5, rate = t.sum), 
-      from = 0, to = 30, n = 1000, 
-      lty = 1, col = "violetred", ann = FALSE, bty = "n", xlim = c(0,30), ylim = c(0,0.60))
+      from = 0, to = 10, 
+      lty = 1, col = "violetred", ann = FALSE, bty = "n", xlim = c(0,10), ylim = c(0,1))
 curve(dgamma(x, shape = alpha.post, rate = beta.post), 
-      from = 0, to = 30, n = 1000, 
+      from = 0, to = 10, 
       lty = "36", lwd = 2, col = "slateblue", add = TRUE)
 legend("topright", legend = c("Posterior (Conjugate Prior)", "Posterior (Noninformative Prior)"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
 title(xlab = expression(theta), ylab = "Density", line = 2)
@@ -290,10 +282,10 @@ Additionally, we will examine the effect of choosing a conjugate gamma prior dis
 ### Posterior Predictive Checking  
 The observed data should look plausible under the posterior predictive distribution
 ```{r, echo = FALSE}
-plot(qt$hours, qt$body.count, ann = FALSE, axes = FALSE, xlim = c(1.5, 3), ylim = c(0,70), col = "violetred", pch = 4)
+plot(qt$hours, qt$body.count, ann = FALSE, axes = FALSE, xlim = c(1.5, 3), ylim = c(0,20), col = "violetred", pch = 4)
 #box(col = "gray50", lty = 1)
 axis(1, at = seq.int(1.5, 3, 0.5), col = "gray50")
-axis(2, at = seq.int(0,70,10), col = "gray50")
+axis(2, at = seq.int(0,20,5), col = "gray50")
 title(xlab = "Movie Duration (hours)", ylab = "Body Count")
 ```
 
