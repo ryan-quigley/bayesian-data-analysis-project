@@ -1,7 +1,7 @@
 l0 <- 0
-u0 <- 200
-p0 <- 0.99
-m0 <- 17.5
+u0 <- 400
+p0 <- 0.999
+m0 <- 43.83
 center0 <- "mode"
 
 f <- function(a, m, l, u, center = "mode", p = 0.99) {
