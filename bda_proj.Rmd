@@ -298,7 +298,7 @@ knitr::kable(hpd.df, align = "l")
 The posterior predictive distribution for a single additional observation is a negative binomial distribution (see Gelman page 44-45). Assuming conditional independence of y and $\tilde{y}$ given $\theta$.  
 \begin{align*}
 p(\tilde{y} ~|~ y) & = \int\limits_0^{\infty} p(\tilde{y} ~|~ \theta)\cdot p(\theta ~|~ y) ~d\theta \\
-& = \int\limits_0^{\infty} \text{Poisson}(\tilde{y}(t) ~|~ \theta) \text{Gamma}\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right) ~d\theta \\
+& = \int\limits_0^{\infty} \text{Poisson}(\tilde{y}(t) ~|~ \theta) \cdot \text{Gamma}\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right) ~d\theta \\
 & = \text{NB}\left(\alpha + \sum\limits_{i=1}^n y_i ~,~ \frac{1}{\tilde{t}}\left[\beta + \sum\limits_{i=1}^n t_i \right]\right)
 \end{align*}
 
@@ -440,7 +440,9 @@ par(mfrow = c(1,1))
 Additionally, we will examine the effect of choosing a conjugate gamma prior distribution with larger variance to account for higher body counts.
 
 ### Posterior Predictive Checking  
+
 The observed data should look plausible under the posterior predictive distribution
+
 ```{r, echo = FALSE}
 plot(qt$hours, qt$body.count, ann = FALSE, axes = FALSE, xlim = c(1.5, 3), ylim = c(0,20), col = "violetred", pch = 4)
 #box(col = "gray50", lty = 1)
@@ -461,157 +463,151 @@ t.sim <- runif(m, min = min(qt.m1$hours), max = max(qt.m1$hours))
 yrep <- round(mapply(rpois, n = n.obs, lambda = theta.sim*t.sim))
 ```
 
-##### Minimum
+##### Minimum & Maximum
 
 ```{r}
 obs.min <- min(qt.m1$body.count)    # observed minimum
 sim.min <- apply(yrep, 2, min)   # simulated minimum
-pval <- length(sim.min[sim.min >= obs.min]) / m
-```
-```{r, echo = FALSE}
-h <- hist(sim.min, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3")#, xlim = c(0,40), ylim = c(0,0.15))
-lines(rep(obs.min, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
-mtext(paste("p-value:", round(pval, 2)), side = 3)
-text(obs.min, max(h$density),  obs.min, pos = 3, offset = 0.5)
-title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
-```
+pval.min <- length(sim.min[sim.min >= obs.min]) / m
 
-**Conclusion**:  
-
-##### Maximum
-
-```{r}
 obs.max <- max(qt.m1$body.count)    # observed maximum
-sim.max <- apply(yrep, 2, max)   # simulated maximum
-pval <- length(sim.max[sim.max <= obs.max]) / m
+sim.max <- apply(yrep, 2, max)      # simulated maximum
+pval.max <- length(sim.max[sim.max <= obs.max]) / m
 ```
 ```{r, echo = FALSE}
-h <- hist(sim.max, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3")#, xlim = c(0,80), ylim = c(0, 0.12))
-lines(rep(obs.max, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
-mtext(paste("p-value =", round(pval, 2)), side = 3)
-text(obs.max, max(h$density), obs.max, pos = 3)
+par(mfrow = c(1,2))
+h <- hist(sim.min, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,25), ylim = c(0,0.20))
+lines(rep(obs.min, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
+mtext(paste("p-value:", round(pval.min, 2)), side = 3, cex = 0.75)
+text(obs.min, max(h$density),  obs.min, pos = 3, offset = 0.5)
+title(main = "Minimum", cex.main = 1, line = 1)
 title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
+
+h <- hist(sim.max, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,40), ylim = c(0, 0.16))
+lines(rep(obs.max, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
+mtext(paste("p-value =", round(pval.max, 2)), side = 3, cex = 0.75)
+text(obs.max, max(h$density), obs.max, pos = 3)
+title(main = "Maximum", cex.main = 1, line = 1)
+title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
+par(mfrow = c(1,1))
 ```
 
 **Conclusion**: 
 
-##### Range (Full)
+##### Range: Full & Interquartile
 
 ```{r}
 obs.range <- diff(range(qt.m1$body.count))
 sim.itmd <- apply(yrep, 2, range)
 sim.range <- apply(sim.itmd, 2, diff)
-pval <- length(sim.range[sim.range <= obs.range]) / m
-```
-```{r, echo = FALSE}
-h <- hist(sim.range, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3")#, xlim = c(0,80), ylim = c(0,0.12))
-lines(rep(obs.range, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
-mtext(paste("p-value:", round(pval, 2)), side = 3)
-text(obs.range, max(h$density), obs.range, pos = 3)
-title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
-```
+pval.range <- length(sim.range[sim.range <= obs.range]) / m
 
-**Conclusion**: 
-
-##### Range (Interquartile)
-
-```{r}
 obs.IQRange <- IQR(qt.m1$body.count)
 sim.IQRange <- apply(yrep, 2, IQR)
-pval <- length(sim.IQRange[sim.IQRange <= obs.IQRange]) / m
+pval.IQR <- length(sim.IQRange[sim.IQRange <= obs.IQRange]) / m
 ```
 ```{r, echo = FALSE}
-h <- hist(sim.IQRange, right = FALSE, freq = FALSE, ann = FALSE, xlim = c(0,30), ylim = c(0,0.2), col = "#1f78b4", border = "#a6cee3")
-lines(rep(obs.IQRange, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
-mtext(paste("p-value:", round(pval, 2)), side = 3)
-text(obs.IQRange, max(h$density), obs.IQRange, pos = 3)
+par(mfrow = c(1,2))
+h <- hist(sim.range, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,30), ylim = c(0,0.2))
+lines(rep(obs.range, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
+mtext(paste("p-value:", round(pval.range, 2)), side = 3, cex = 0.75)
+text(obs.range, max(h$density), obs.range, pos = 3)
+title(main = "Full", cex.main = 1, line = 1)
 title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
+
+h <- hist(sim.IQRange, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,20), ylim = c(0,0.4))
+lines(rep(obs.IQRange, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
+mtext(paste("p-value:", round(pval.IQR, 2)), side = 3, cex = 0.75)
+text(obs.IQRange, max(h$density), obs.IQRange, pos = 3)
+title(main = "IQR", cex.main = 1, line = 1)
+title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
+par(mfrow = c(1,1))
 ```
 
 **Conclusion**: 
 
-##### Sample Mean
+##### Sample Mean & Variance
 
 ```{r}
 obs.mean <- mean(qt.m1$body.count)    # observed mean
 sim.mean <- apply(yrep, 2, mean)   # simulated mean
-pval <- length(sim.mean[sim.mean >= obs.mean]) / m
-```
-```{r, echo = FALSE}
-h <- hist(sim.mean, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3")#, xlim = c(0,50), ylim = c(0,0.12))
-lines(rep(obs.mean, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
-mtext(paste("p-value:", round(pval, 2)), side = 3)
-text(obs.mean, max(h$density), obs.mean, pos = 3)
-title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
-```
+pval.mean <- length(sim.mean[sim.mean >= obs.mean]) / m
 
-**Conclusion**: 
-
-##### Sample Median
-
-```{r}
-obs.median <- median(qt.m1$body.count)    # observed median
-sim.median <- apply(yrep, 2, median)   # simulated median
-pval <- length(sim.median[sim.median >= obs.median]) / m
-```
-```{r, echo = FALSE}
-h <- hist(sim.median, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3")#, xlim = c(0,50), ylim = c(0,0.12))
-lines(rep(obs.median, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
-mtext(paste("p-value:", round(pval, 2)), side = 3)
-text(obs.median, max(h$density), obs.median, pos = 3)
-title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
-```
-
-**Conclusion**: 
-
-##### Sample Median Absolute Deviation
-
-```{r}
-obs.mad <- mad(qt.m1$body.count)    # observed median
-sim.mad <- apply(yrep, 2, mad)   # simulated median
-pval <- length(sim.mad[sim.mad >= obs.mad]) / m
-```
-```{r, echo = FALSE}
-h <- hist(sim.mad, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3")#, xlim = c(0,50), ylim = c(0,0.3))
-lines(rep(obs.mad, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
-mtext(paste("p-value:", round(pval, 2)), side = 3)
-text(obs.mad, max(h$density), round(obs.mad, 2), pos = 3)
-title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
-```
-
-**Conclusion**: 
-
-##### Sample Variance
-
-```{r}
 obs.var <- var(qt.m1$body.count)           # observed variance
 sim.var <- apply(yrep, 2, var)   # simulated variance
-pval <- length(sim.var[sim.var <= obs.var]) / m
+pval.var <- length(sim.var[sim.var <= obs.var]) / m
 ```
 ```{r, echo = FALSE}
-h <- hist(sim.var, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3")#, xlim = c(0,700), ylim = c(0,0.04))
-lines(rep(obs.var, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
-mtext(paste("p-value:", pval), side = 3)
-text(obs.var, max(h$density), round(obs.var, 2), pos = 3)
+par(mfrow = c(1,2))
+h <- hist(sim.mean, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,25), ylim = c(0,0.2))
+lines(rep(obs.mean, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
+mtext(paste("p-value:", round(pval.mean, 2)), side = 3, cex = 0.75)
+text(obs.mean, max(h$density), round(obs.mean, 2), pos = 3)
+title(main = "Mean", cex.main = 1, line = 1)
 title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
+
+h <- hist(sim.var, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,60), ylim = c(0,0.1))
+lines(rep(obs.var, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
+mtext(paste("p-value:", round(pval.var, 2)), side = 3, cex = 0.75)
+text(obs.var, max(h$density), round(obs.var, 2), pos = 3)
+title(main = "Variance", cex.main = 1, line = 1)
+title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
+par(mfrow = c(1,1))
 ```
 
-##### Ratio: Sample Mean / Sample Variance
+**Conclusion**: 
+
+##### Ratio: Sample Variance/ Sample Mean
 
 ```{r}
-obs.ratio <- obs.mean / obs.var
-sim.ratio <- sim.mean / sim.var
-pval <- length(sim.ratio[sim.ratio >= obs.ratio]) / m
+obs.ratio <- obs.var / obs.mean
+sim.ratio <- sim.var / sim.mean
+pval <- length(sim.ratio[sim.ratio <= obs.ratio]) / m
 ```
 ```{r, echo = FALSE}
-h <- hist(sim.ratio, breaks = 100, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3")#, xlim = c(0,80), ylim = c(0,0.5))
+h <- hist(sim.ratio, breaks = 100, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,6), ylim = c(0,1))
 lines(rep(obs.ratio, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
-mtext(paste("p-value:", pval), side = 3)
+mtext(paste("p-value:", round(pval, 2)), side = 3, cex = 0.75)
 text(obs.ratio, max(h$density), round(obs.ratio, 2), pos = 3)
+title(main = "Var/Mean Ratio", cex.main = 1, line = 1)
+title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
+```
+
+```{r}
+## Simulation set=up
+m <- 500000
+n.obs.m2 <- length(qt.m2$body.count)
+theta.sim.m2 <- rgamma(m, shape = alpha.post.m2, rate = beta.post.m2)
+t.sim.m2 <- runif(m, min = min(qt.m2$hours), max = max(qt.m2$hours))
+yrep.m2 <- round(mapply(rpois, n = n.obs, lambda = theta.sim.m2*t.sim.m2))
+
+obs.mean.m2 <- mean(qt.m2$body.count)
+sim.mean.m2 <- apply(yrep.m2, 2, mean)
+pval.mean.m2 <- length(sim.mean.m2[sim.mean.m2 <= obs.mean.m2]) / m
+```
+```{r, echo = FALSE}
+h <- hist(yrep.m2, breaks = 100, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,140), ylim = c(0,0.04))
+lines(rep(obs.mean.m2, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
+mtext(paste("p-value:", round(pval.mean.m2, 2)), side = 3, cex = 0.75)
+text(obs.mean.m2, max(h$density), round(obs.mean.m2, 2), pos = 3)
+title(main = "Model 2: Mean", line = 1)
 title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
 ```
 
 
+```{r}
+m <- 500000
+n.obs.m3 <- length(qt.m3$body.count)
+theta.sim.m3 <- rgamma(m, shape = alpha.post.m3, rate = beta.post.m3)
+t.sim.m3 <- qt.m3$hours
+yrep.m3 <- round(mapply(rpois, n = n.obs.m3, lambda = theta.sim.m3*t.sim.m3))
+```
+```{r, echo = FALSE}
+h <- hist(yrep.m3, breaks = 100, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(200,600), ylim = c(0,0.02))
+lines(rep(qt.m3$body.count, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
+text(qt.m3$body.count, max(h$density), qt.m3$body.count, pos = 3)
+title(main = "Model 3", xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
+```
 
 ### Assumption Checking
 
