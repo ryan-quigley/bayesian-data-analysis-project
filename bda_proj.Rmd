@@ -5,6 +5,12 @@ output:
   html_notebook: default
 ---
 
+---
+
+# I. Executive Summary  
+
+---
+
 ```{r, echo = FALSE}
 ## Reading in datasets for the analysis
 
@@ -29,7 +35,7 @@ qt <- qt[, c(1,6,5,3,2,4,7,8,9,10)]
 
 ---
 
-# I. Data Summary  
+# II. Data Summary  
 
 ---
 
@@ -87,15 +93,14 @@ dc.filt.m3 <- dc[dc$MPAA_Rating %in% c("R", "Unrated", "NR") & dc$Year > 1989 & 
 genre.sum <- round(data.frame(rbind(length(dc.filt.m1$Kill_Rate), length(dc.filt.m2$Kill_Rate), length(dc.filt.m3$Kill_Rate)), 
                         rbind(summary(dc.filt.m1$Kill_Rate), summary(dc.filt.m2$Kill_Rate), summary(dc.filt.m3$Kill_Rate)),
                         row.names = c("Model 1", "Model 2", "Model 3")), 2)
-
-#names(genre.sum) <- c("N", "Min", "Q.1", "Median", "Mean", "Q.3", "Max")
+names(genre.sum) <- c("N", "Min", "Q.1", "Median", "Mean", "Q.3", "Max")
 knitr::kable(genre.sum, align = "l")
 ```
 
 
 ---
 
-# II. Models
+# III. Models & Distributions
 
 ---
 
@@ -105,9 +110,8 @@ According to Gelman et. al. (pg. 45), this model is NOT exchangeable in the $y_i
 
 ##### Assumptions
 
-Lecture (See slide 23 of LectureD):  
+Lecture (See slide 23 of LectureD). Let $y(t)$ denote the number of events that have occurred during a time interval $[0, t]$  
 
-* let $y(t)$ denote the number of events that have occurred during a time interval $[0, t]$
 * P1: $y(0) = 0$
 * P2: For all $n \geq 0$, and for any two time intervals, $I_1$ and $I_2$, of equal length, Pr($n$ events in $I_1$) = Pr($n$ events in $I_2$)
 * P3: Events that occur in nonoverlapping time intervals are mutually independent (want to relax this and replace with exchangeability)
@@ -118,17 +122,10 @@ Under these conditions, there exists a positive number $\theta$ that produces th
 
 $$p(y ~|~ \theta) = \frac{1}{y!}(\theta t)^{y}e^{-(\theta t)} \cdot {1}_{\{0,1,2,...\}}(y)$$
 
-Wikipedia:  
-
-* $y$ the number of times an event occurs in an interval and it can take values 0, 1, 2,...
-* The occurrence of one event does not affect the probability that a second event will occur. That is, events occur independently.
-* The rate at which events occur is constant. The rate cannot be higher in some intervals and lower in other intervals.
-* Two events cannot occur at exactly the same instant.
-* The probability of an event in an interval is proportional to the length of the interval.
-
 Not an assumption but a result of the sampling distribution: E[$y(t) | \theta$] = Var($y(t) | \theta$) = $\theta \cdot t$
   
 ### Likelihood
+
 A necessary and sufficient condition to get product of identical distributions is  
 $$p(y_1,...y_n ~|~ s_n) = \frac{s_n!}{y_1!,...,y_n!} \prod\limits_{i=1}^n \left(\frac{1}{n}\right)^{y_i}$$
 For every $n$, where $s_n = y_1 + ... + y_n$. This condition is not reasonably justified if we group all the data together; however, once grouped into three models, the condition seems reasonable within each model. Assuming this condition holds, the likelihood is:
@@ -277,7 +274,12 @@ legend("topright", inset = 0.05, legend = c("Prior", "Posterior"), col = c("slat
 title(main = "Model 3", xlab = expression(theta), ylab = "Density")
 ```
 
-### TODO: Posterior Tables
+Model |  Posterior: $p(\theta~|~y)$ | Named
+------|-----------------------------|---------
+ 1 | $\propto \theta^{60.46 - 1}e^{-13.79\cdot\theta}$ | Gamma(60.46, 13.79)
+ 2 | $\propto \theta^{128.13 - 1}e^{-4.66\cdot\theta}$ | Gamma(128.13, 4.66)
+ 3 | $\propto \theta^{398.015 - 1}e^{-2.57\cdot\theta}$ | Gamma(398.015, 2.57)
+
 
 ##### Highest Posterior Density Interval: 99%
 
@@ -380,7 +382,7 @@ knitr::kable(ppd.df, align = "l")
 
 ---
 
-# III. Model Checking  
+# IV. Model Checking  
 
 ---
 
