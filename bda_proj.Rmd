@@ -1,6 +1,6 @@
 ---
-title: 'MATH 264: Bayesian Project'
-author: "Terry Situ, Caie Yan, Ryan Quigley"
+#title: 'MATH 264: Bayesian Project'
+#author: "Terry Situ, Caie Yan, Ryan Quigley"
 geometry: margin=0.5in
 output:
   pdf_document: default
@@ -120,7 +120,7 @@ Model | Prior                 |  Likelihood        | Posterior                | 
 
 The Poisson model parameterized in terms of rate and exposure is,  
 $$p(y ~|~ \theta) = \frac{1}{y!}(\theta t)^{y}e^{-(\theta t)} \cdot {1}_{\{0,1,2,...\}}(y)$$  
-According to Gelman et al. (2003, pg. 45), this model is not exchangeable in the $y_i$'s but is exchangeable in the pairs $(t,y)_i$. For our analysis, $\theta$ is the uknown kill rate per hour.
+For our analysis, $\theta$ is the uknown kill rate per hour. According to Gelman et al. (2003, pg. 45), this model is not exchangeable in the $y_i$'s but is exchangeable in the pairs $(t,y)_i$. Due to the genre similarity within each model, we do not have any reservations about judging exchangeability for the data points within each model.
 
 ##### Assumptions and Justification
 
@@ -129,8 +129,7 @@ Now imagine taking two non-overlapping but back-to-back intervals during the cli
 Additionally, the assumption that the simultaneous occurrence of two or more events is impossible seems tenous. For example, movie explosions seem to imply that multiple people die instantenously and silmutaneously. We admit an argument could be made for differences in nanoseconds, but it would be nearly impossible to measure and verify.  
 Nevertheless, the overall validity of the assumptions is questionable enough to preclude the use of the Poisson model. Therefore, we turn to the General Representation Theorem, with the additional necessary and sufficient condition developed by Freedman, in order justify that the observations are conditionally indepedent given $\theta$.  
 
-For model 1, if we imagine dropping 59 balls into 6 boxes each with probability 1/6, the result (11, 7, 4, 13, 6, 18) seems completely reasonable. Similarly for model 2, (62, 64) is a likely result of dropping 126 balls into 2 bins with 1/2 probability each. Model 3 does not require this justification because it only has one data point. To provide a more concrete justification, we simulated 10,000 draws from the multinomial distribution for each model and plotted the results in the section *Multinomial Condition Check* of the appendix. The plots further support our conclusion that the condition is met. Therefore, the likehood for each model is of the form  
-$$p(y ~|~ \theta) \propto \theta^{\left(\sum\limits_{i=1}^n y_i\right)} \exp\left( -\theta \sum\limits_{i=1}^n t_i \right)$$
+For model 1, if we imagine dropping 59 balls into 6 boxes each with probability 1/6, the result (11, 7, 4, 13, 6, 18) seems completely reasonable. Similarly for model 2, (62, 64) is a likely result of dropping 126 balls into 2 bins with 1/2 probability each. Model 3 does not require this justification because it only has one data point. To provide a more concrete justification, we simulated 10,000 draws from the multinomial distribution for each model and plotted the results in the section *Multinomial Condition Check* of the appendix. The plots further support our conclusion that the condition is met. Therefore, the likehood for each model is of the form  $p(y ~|~ \theta) \propto \theta^{\left(\sum\limits_{i=1}^n y_i\right)} \exp\left( -\theta \sum\limits_{i=1}^n t_i \right)$
 
 ## Conjugate Prior: Gamma
 
@@ -374,11 +373,11 @@ par(mar = margins)
 
 ### Conclusions
 
- * Limitations
- * Alternative Models
-    - Hierachichal model
-    - Negative binomial for model 1 in order to handle overdispersion
-    - Poisson regression
+The approach we took for this analysis is unorthodox: it is uncommon to break a dataset into distinct groups and fit a model to each individual group. However the dataset is peculiar and it demands special treatment, perhaps using more advanced Bayesian modelling methods unknown to us. For example, we know the negative binomial sampling distribution can be used as a robust alternative to the Poisson distribution to help account for the overdispersion of the data. Since we have presented an argument for grouping the data, it seems reasonable to assume that a hierarchichal model could fit the data particularly well.  
+
+If readers are unconformtable with the data grouping decision, they may be more accepting of model 1 if viewed as a model for the entire data set where three large outliers have been removed. The parameters of the distributions and the predicted values will be the same, but the interpretation will be slightly different. That being said, we believe our justification for breaking up the dataset is sound given the knowledge we have about the data. Observing only the body count numbers of Tarantino movies, it is clear that the majority of the data is clustered around 10 deaths; that is, the majority of his movies do not have epic scenes of death where the bodies fall so fast that is is difficult to count. Intuitively, it seems likely that his next movie will not be dominated by an epic death scene. Thus, our prediction from model 1 of 9 deaths in the next movie seems reasonable.
+
+But! Tarantino has been quoted saying that he only plans to make 10 movies in total (Robinson, 2013). If we combine the *Kill Bills* into one movie, which most Tarantino fanatics do, that puts us at 8 movies produced so far. Could he end his saga with another two volume film where he pulls out all the stops and introduces more violence and death than ever before? Quite possibly. Thus, its nice to know we have a model to address this possibility, and model 2 tells us that 62 deaths is the most likely value in this case. And finally, if he attempts another war themed blood bath, then model 3 tells us 382 deaths is most likely what we are going to get so we better prepare ourselves for a gore fest.
 
 \pagebreak
 
@@ -625,7 +624,6 @@ http://www.vanityfair.com/hollywood/2013/02/quentin-tarantino-deaths-movies
 
 Robinson, J. (2016, July 12). *Does Quentin Tarantino Really Have Just Two More Movies in Him?* Retrieved from
 http://www.vanityfair.com/hollywood/2016/07/quentin-tarantino-ten-movies-retirement
-
 
 Poisson distribution. (2016, November 27). In Wikipedia, The Free Encyclopedia. Retrieved 18:33, November 27, 2016, from https://en.wikipedia.org/w/index.php?title=Poisson_distribution&oldid=751763566
 
