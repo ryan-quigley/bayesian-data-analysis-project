@@ -44,7 +44,7 @@ qt <- qt[, c(1,6,5,3,2,4,7,8,9,10)]
 
 ##### Taratino Filmography (as writer and director)  
 
-Metadata extracted from IMDB (IMDB, 2016); body count extracted from Vanity Fair infographic (Down for the count, 2013)
+The table below provides the background information of nine movies directed and written by Tarantino. The movies included in each model are indicated in the Model column. Metadata extracted from IMDB (IMDB, 2016); body count extracted from Vanity Fair infographic (Down for the count, 2013)
 
 ```{r, echo = FALSE}
 qt.data.sum <- qt[, 1:7]
@@ -59,6 +59,13 @@ qt.data.sum <- rbind(qt.data.sum[1:5, ], c("", "", paste(kbv2.gsplit[3:4], colla
                      qt.data.sum[6:9, ], c("", "", paste(h8.gsplit[4:5], collapse = ", "), "", "", "", "", ""))
 knitr::kable(qt.data.sum, align = c("l", "l", "l", "l", "r", "r", "r"), row.names = FALSE, digits = 2)
 ```
+
+From the article where the infographic was originally published:  
+
+> "A few numbers are approximated due to the impossibility of counting precisely how many ninjas are decapitated in **Kill Bill Vol. 1**, how many Nazis are in the theater when it gets set afire in **Inglorious Basterds**, and how many people fall in the never-ending shoot-out scene at the end of **Django Unchained**."  
+> - Vanity Fair  
+
+The body count numbers in these three movies are unsually large and require approximation for one main reason: each contains a single scene of unimaginable (to most people except Tarantino) violence that dramatically increasese the death toll. In light of this information, we find it impossible to judge exchangeability for the entire nine movie filmography of Tarantino as both writer and director; however, we are not attempting to use this as evidence for throwing out the data points as outliers. Instead, given our limited knowledge of alternative Bayesian models, we have chosen to group the data into three distinct sets, and we have fit a model for each group. All movies not described in the quote above are grouped into model 1; the other three movies (in bold in the quote) are further separated into two groups based on the binary genre classification war/non-war. This justifcation was based on analysis of the historical movie sample, which indicated that body counts and kill rates per hour were dramatically higher in the war genre than all other genres that Tarantino movies fall under. The movies included in each model are indicated in the *Model* column of the Taratino filmography table above.
 
 ##### Historical Movie Sample  
 
@@ -101,13 +108,6 @@ knitr::kable(genre.sum, align = "l")
 
 # III. Models
 
-From the article where the infographic was originally published:  
-
-> "A few numbers are approximated due to the impossibility of counting precisely how many ninjas are decapitated in **Kill Bill Vol. 1**, how many Nazis are in the theater when it gets set afire in **Inglorious Basterds**, and how many people fall in the never-ending shoot-out scene at the end of **Django Unchained**."  
-> - Vanity Fair  
-
-The body count numbers in these three movies are unsually large and require approximation for one main reason: each contains a single scene of unimaginable (to most people except Tarantino) violence that dramatically increasese the death toll. In light of this information, we find it impossible to judge exchangeability for the entire nine movie filmography of Tarantino as both writer and director; however, we are not attempting to use this as evidence for throwing out the data points as outliers. Instead, given our limited knowledge of alternative Bayesian models, we have chosen to group the data into three distinct sets, and we have fit a model for each group. All movies not described in the quote above are grouped into model 1; the other three movies (in bold in the quote) are further separated into two groups based on the binary genre classification war/non-war. This justifcation was based on analysis of the historical movie sample, which indicated that body counts and kill rates per hour were dramatically higher in the war genre than all other genres that Tarantino movies fall under. The movies included in each model are indicated in the *Model* column of the Taratino filmography table above.
-
 The following table summarizes the model components, and provides two posterior summary statistics for $\theta$ (Note: $\Gamma(\alpha, \beta) = \text{Gamma}(\alpha, \beta)$).  
 
 Model | Prior                 |  Likelihood        | Posterior                | Posterior Mode | 99% HPD Inteval
@@ -116,35 +116,25 @@ Model | Prior                 |  Likelihood        | Posterior                | 
  2 | $\Gamma(2.13, 0.064)$  | $\propto \theta^{126}e^{-4.6\theta}$  | $\Gamma(128.13, 4.66)$  | 25.26  | [21.49, 33.97]
  3 | $\Gamma(2.015, 0.023)$ | $\propto \theta^{396}e^{-2.55\theta}$ | $\Gamma(398.015, 2.57)$ | 154. 3 | [135.20, 175.12]
 
-## Sampling Distribution: Poisson with rate and exposure
+## Sampling Distribution: Poisson (Rate and Exposure)
 
-According to Gelman et. al. (pg. 45), this model is NOT exchangeable in the $y_i$'s but is exchangeable in the pairs $(t,y)_i$
+The Poisson model parameterized in terms of rate and exposure is,  
+$$p(y ~|~ \theta) = \frac{1}{y!}(\theta t)^{y}e^{-(\theta t)} \cdot {1}_{\{0,1,2,...\}}(y)$$  
+According to Gelman et. al. (pg. 45), this model is not exchangeable in the $y_i$'s but is exchangeable in the pairs $(t,y)_i$. For our analysis, $\theta$ is the uknown kill rate per hour.
 
 ##### Assumptions and Justification
 
-Let $y(t)$ denote the number of events that have occurred during a time interval $[0, t]$  
+There are a number of assumptions associated with the Poisson model that typically need to be met in order to justify using the model. In the case of observations that represent deaths per movie, at least two of the assumptions appear to be violated. First, imagine splitting a movie into two non-overlapping intervals of equal length such that they cover the entire length of the movie. Based on the general plot structure of movies, the probability that you would have a high number of kills in the first interval would be much lower than the probability of having a high number of kills in the second half, which would likely contain the climax and most of the action. Similarly, a low number of kills would be more likely in the first half than the second. Thus, the probability of $n$ kills in the first interval does not equal the probability of $n$ kills in the second interval.  
+Now imagine taking two non-overlapping but back-to-back intervals during the climax of a movie. If people start getting killed in the first interval, the chances of continued killing in the next interval will be significantly increased. Thus, we cannot reasonably assume non-overlapping are mutually indepedent.  
+Additionally, the assumption that the simultaneous occurrence of two or more events is impossible seems tenous. For example, movie explosions seem to imply that multiple people die instantenously and silmutaneously. We admit an argument could be made for differences in nanoseconds, but it would be nearly impossible to measure and verify.  
+Nevertheless, the overall validity of the assumptions is questionable enough to preclude the use of the Poisson model. Therefore, we turn to the General Representation Theorem, with the additional necessary and sufficient condition developed by Freedman, in order justify that the observations are conditionally indepedent given $\theta$.  
 
-* P1: $y(0) = 0$
-* P2: For all $n \geq 0$, and for any two time intervals, $I_1$ and $I_2$, of equal length, Pr($n$ events in $I_1$) = Pr($n$ events in $I_2$)
-* P3: Events that occur in nonoverlapping time intervals are mutually independent (want to relax this and replace with exchangeability)
-* P4: $\lim\limits_{h \to 0}\frac{\text{Pr}(y(h) > 1)}{h} = 0$
-* P5: $0 < \text{Pr}\{y(t)=0\} < 1, ~ \forall ~  t > 0$
-
-Under these conditions, there exists a positive number $\theta$ that produces the density below where $\theta$ = the true underlying kill rate per hour in Quentin Taratino movies:  
-$$p(y ~|~ \theta) = \frac{1}{y!}(\theta t)^{y}e^{-(\theta t)} \cdot {1}_{\{0,1,2,...\}}(y)$$
-Given the plot structure of movies we would not expect the kill rate to be constant within the movie; however, with the information available we cannot determine whether or not this assumption is violated within each movie.  
-
-## Likelihood
-
-A necessary and sufficient condition to get product of identical distributions is  
-$$p(y_1,...y_n ~|~ s_n) = \frac{s_n!}{y_1!,...,y_n!} \prod\limits_{i=1}^n \left(\frac{1}{n}\right)^{y_i}$$
-For every $n$, where $s_n = y_1 + ... + y_n$. This condition is not reasonably justified if we group all the data together; however, once grouped into three models, the condition seems reasonable within each model. Assuming this condition holds, the likelihood is:  
+For model 1, if we imagine dropping 59 balls into 6 boxes each with probability 1/6, the result (11, 7, 4, 13, 6, 18) seems completely reasonable. Similarly for model 2, (62, 64) is a likely result of dropping 126 balls into 2 bins with 1/2 probability each. Model 3 does not require this justification because it only has one data point. To provide a more concrete justification, we simulated 10,000 draws from the multinomial distribution for each model and plotted the results in the section *Multinomial Condition Check* of the appendix. The plots further support our conclusion that the condition is met. Therefore, the likehood for each model is of the form  
 $$p(y ~|~ \theta) \propto \theta^{\left(\sum\limits_{i=1}^n y_i\right)} \exp\left( -\theta \sum\limits_{i=1}^n t_i \right)$$
 
 ## Conjugate Prior: Gamma
 
-Since the conjugate prior distribution for the Poisson sampling distribution is the Gamma distribution, the prior distribution of $\theta$ will be of the form:  
-$$p(\theta) \propto \theta^{\alpha - 1}e^{-\beta\cdot\theta}$$
+We chose to use conjugate priors for our models because data on body counts per movie was readily available thanks to the dedication of movie buffs on the internet. Since the conjugate prior distribution for the Poisson sampling distribution is the Gamma distribution, the prior distribution of $\theta$ will be of the form $p(\theta) \propto \theta^{\alpha - 1}e^{-\beta\cdot\theta}$
 
 The parameters of the conjugate prior distributions for each model were calculated by solving analytically a pair of equations for $\alpha$ and $\beta$ (Lee, 2016). The equations were determined by (1) setting the mode formula for the gamma distribution equal to the mode of the kernel density estimate, and by (2) observing the interval that approximately 99.9% of the historical data subset was contained in. For modes of the kernel density estimates are 8.61, 17.85, and 43.83, respectively. The intervals that appeared to contain 99.9% of the historical data were (0,150), (0,150), and (0,400), respectively. See the *Model Derivations* section of the appendix for the mathematical equations and plots of the kernel density estimates and theoretical gamma distributions.
 
@@ -367,7 +357,7 @@ h <- hist(sim.ratio, breaks = 100, right = FALSE, freq = FALSE, ann = FALSE, col
 lines(rep(obs.ratio, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
 mtext(paste("p-value:", round(pval.ratio, 2)), side = 3, cex = 0.75)
 text(obs.ratio, max(h$density), round(obs.ratio, 2), pos = 3)
-title(main = "Var/Mean Ratio", cex.main = 1, line = 1)
+title(main = "Var/Mean Ratio", line = 1)
 title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density", line = 2)
 
 ## Minimum
@@ -375,7 +365,7 @@ h <- hist(sim.min, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", bo
 lines(rep(obs.min, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
 mtext(paste("p-value:", round(pval.min, 2)), side = 3, cex = 0.75)
 text(obs.min, max(h$density),  obs.min, pos = 3, offset = 0.5)
-title(main = "Minimum", cex.main = 1, line = 1)
+title(main = "Minimum", line = 1)
 title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density", line = 2)
 
 ## Maximum
@@ -383,7 +373,7 @@ h <- hist(sim.max, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", bo
 lines(rep(obs.max, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
 mtext(paste("p-value =", round(pval.max, 2)), side = 3, cex = 0.75)
 text(obs.max, max(h$density), obs.max, pos = 3)
-title(main = "Maximum", cex.main = 1, line = 1)
+title(main = "Maximum", line = 1)
 title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density", line = 2)
 par(def.par)
 par(mar = margins)
@@ -399,7 +389,38 @@ par(mar = margins)
 
 \pagebreak
 
-# V. Appendix 
+# IV. Appendix 
+
+## Multinomial Condition Check
+
+In order to justify that $y_i,...,y_n$ are c.i.i.d poisson observations given $\theta$, a necessary and sufficient condition is that
+$$p(y_1,...y_n ~|~ s_n) = \frac{s_n!}{y_1!,...,y_n!} \prod\limits_{i=1}^n \left(\frac{1}{n}\right)^{y_i}$$
+for every $n$, where $s_n = y_1 + ... + y_n$.  
+Note, this condition is not reasonably justified if we group all the data together; however, once grouped into three models, the condition seems reasonable within each model. The left panel in the following plot displays 10,000 simulations of dropping 59 balls in 6 equally likely bins; the right panel, simulates dropping 126 balls in 2 equally likely bins. The black triangle indicate the actually data points used for that model. 
+
+```{r, eval = FALSE}
+mltnom.check.m1 <- rmultinom(n = 10000, prob = rep(1/6, 6), size = 59)
+mltnom.check.m2 <- rmultinom(n = 10000, prob = rep(1/2, 2), size = 126)
+```
+
+```{r, echo = FALSE, fig.width=8, fig.height=3}
+par(mfrow = c(1,2), cex.axis = 0.75, cex.main = 0.75, cex.lab = 0.75)
+mltnom.check.m1 <- rmultinom(n = 10000, prob = rep(1/6, 6), size = sum(qt.m1$body.count))
+stripchart(mltnom.check.m1, method = "stack", offset = 0.0008, pch = 20, 
+           col = "violetred", at = 0, ann = FALSE, axes = FALSE, xlim = c(0,30), ylim = c(0,2))
+axis(1, at = seq.int(0,30,5))
+points(qt.m1$body.count, rep(0, 6), pch = 17, cex = 1, col = "black")
+title(main = "Model 1", xlab = "Bin Counts")
+
+mltnom.check.m2 <- rmultinom(n = 10000, prob = rep(1/2, 2), size = sum(qt.m2$body.count))
+stripchart(mltnom.check.m2, method = "stack", offset = 0.004, pch = 20, 
+           col = "violetred", at = 0, ann = FALSE, axes = FALSE, xlim = c(30, 90))
+#axis(1, at = 30:30, labels = NA)
+axis(1, at = seq.int(30,90,10))#, lwd = 0, lwd.tick = 0)
+points(qt.m2$body.count, rep(0, 2), pch = 17, cex = 1, col = "black")
+title(main = "Model 2", xlab = "Bin Counts")
+par(mfrow = c(1,1))
+```
 
 ## Model Derivations
 
@@ -572,7 +593,7 @@ par(mfrow = c(1,1))
 
 \pagebreak
 
-# VI. References
+# V. References
 
 Dr. Lee R code
 
