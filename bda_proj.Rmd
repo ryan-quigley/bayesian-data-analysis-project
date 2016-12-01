@@ -6,12 +6,12 @@ output:
   pdf_document: default
   html_notebook: default
   html_document: default
-fontsize: 12pt
+fontsize: 11pt
 ---
 
 # I. Executive Summary  
 
-Quentin Tarantino’s moves are famous (or notorious) for violent death and massacre. In this project, we use Bayesian method to analyze and predict the body count in Quentin Tarantino’s next movie.  Using a body counts database of about 200 movies, we explored the possible factors, such a genre, rating, and year of publication, that could be associated with body count of a movie. Among all the factors, the association of genre with body count is significant.  War movies have much more body counts than other movies. Thus, we decided to build different models for different genres, one for war movies, and two for other movies, such as drama, crime, thriller, western, and action. We used the distribution of the body counts of other movies, except Tarantino’s to specify the parameters of the conjugate prior of different models. We picked Poisson distribution to model the sample data. Detailed justification of using Poisson model is provided later. Our results show that for the same movie duration, if Quentin Tarantino’s next movie is about a war, the body count could be as many as 38 times a non-war related movie.  
+Quentin Tarantino’s moves are famous (or notorious) for violent death and massacre. In this project, we use Bayesian method to analyze and predict the body count in Quentin Tarantino’s next movie.  Using a body counts dataset of about 200 movies, we explored the possible factors, such a genre, rating, and year of publication, that could be associated with body count of a movie. Among all the factors, the association of genre with body count is significant.  War movies have much more body counts than other movies. Thus, we decided to build different models for different genres, one for war movies, and two for other movies, such as drama, crime, thriller, western, and action. We used the distribution of the body counts of other movies, except Tarantino’s to specify the parameters of the conjugate prior of different models. We picked Poisson distribution to model the sample data. Detailed justification of using Poisson model is provided later. Our results show that for the same movie duration, if Quentin Tarantino’s next movie is about a war, the body count could be as many as 38 times a non-war related movie.  
 
 ```{r global_options, include=FALSE}
 knitr::opts_chunk$set(fig.align = "center")
@@ -48,18 +48,19 @@ Metadata extracted from IMDB (IMDB, 2016); body count extracted from Vanity Fair
 
 ```{r, echo = FALSE}
 qt.data.sum <- qt[, 1:7]
+qt.data.sum <- cbind(c(1,1,1,2,1,1,3,2,1), qt.data.sum)
 qt.data.sum$hours <- round(qt.data.sum$hours, 2)
-names(qt.data.sum) <- c("Movie", "Genre", "Year", "Rating", "Body Count", "Hours", "Kill Rate/Hr" )
-h8.gsplit <- unlist(strsplit(qt.data.sum[9,2], ", ", fixed = TRUE))
-kbv2.gsplit <- unlist(strsplit(qt.data.sum[5,2], ", ", fixed = TRUE))
-qt.data.sum[5,2] <- paste(kbv2.gsplit[1:2], collapse = ", ")
-qt.data.sum[9,2] <- paste(h8.gsplit[1:3], collapse = ", ")
-qt.data.sum <- rbind(qt.data.sum[1:5, ], c("", paste(kbv2.gsplit[3:4], collapse = ", "), "", "", "", "", ""), 
-                     qt.data.sum[6:9, ], c("", paste(h8.gsplit[4:5], collapse = ", "), "", "", "", "", ""))
+names(qt.data.sum) <- c("Model", "Movie", "Genre", "Year", "Rating", "Body Count", "Hours", "Kill Rate/Hr" )
+h8.gsplit <- unlist(strsplit(qt.data.sum[9,3], ", ", fixed = TRUE))
+kbv2.gsplit <- unlist(strsplit(qt.data.sum[5,3], ", ", fixed = TRUE))
+qt.data.sum[5,3] <- paste(kbv2.gsplit[1:2], collapse = ", ")
+qt.data.sum[9,3] <- paste(h8.gsplit[1:3], collapse = ", ")
+qt.data.sum <- rbind(qt.data.sum[1:5, ], c("", "", paste(kbv2.gsplit[3:4], collapse = ", "), "", "", "", "", ""), 
+                     qt.data.sum[6:9, ], c("", "", paste(h8.gsplit[4:5], collapse = ", "), "", "", "", "", ""))
 knitr::kable(qt.data.sum, align = c("l", "l", "l", "l", "r", "r", "r"), row.names = FALSE, digits = 2)
 ```
 
-##### Historical Movie Database Sample  
+##### Historical Movie Sample  
 
 In order to estimate the parameters of the conjugate prior distribution for each model in the next section, we acquired a dataset compiled by Randal Olson from the site http://www.moviebodycounts.com/. See references for links to original dataset. The original data is filtered to make it more relevant to our analysis. The following table summarizes the kill rate per hour of the subset of the historical data used for each model:
 
@@ -105,11 +106,7 @@ From the article where the infographic was originally published:
 > "A few numbers are approximated due to the impossibility of counting precisely how many ninjas are decapitated in **Kill Bill Vol. 1**, how many Nazis are in the theater when it gets set afire in **Inglorious Basterds**, and how many people fall in the never-ending shoot-out scene at the end of **Django Unchained**."  
 > - Vanity Fair  
 
-The body count numbers in these three movies are unsually large and require approximation for one main reason: each contains a single scene of unimaginable (to most people except Tarantino) violence that dramatically increasese the death toll. In light of this information, we find it impossible to judge exchangeability for the entire nine movie filmography of Tarantino as both writer and director. We belive Gelman et. al would support our judgement given their published opinion on the matter,  
-
-> "In practice, ignorance implies exchangeability. Generally, the less we know about a problem, the more confidently we can make claims of exchangeability. (This is not, we hasten to add, a good reason to limit our knowledge of a problem before embarking on statistical analysis!)"  
-> - Gelman et. al BDA
-
+The body count numbers in these three movies are unsually large and require approximation for one main reason: each contains a single scene of unimaginable (to most people except Tarantino) violence that dramatically increasese the death toll. In light of this information, we find it impossible to judge exchangeability for the entire nine movie filmography of Tarantino as both writer and director; however, we are not attempting to use this as evidence for throwing out the data points as outliers. Instead, given our limited knowledge of alternative Bayesian models, we have chosen to group the data into three distinct sets, and we have fit a model for each group. All movies not described in the quote above are grouped into model 1; the other three movies (in bold in the quote) are further separated into two groups based on the binary genre classification war/non-war. This justifcation was based on analysis of the historical movie sample, which indicated that body counts and kill rates per hour were dramatically higher in the war genre than all other genres that Tarantino movies fall under. The movies included in each model are indicated in the *Model* column of the Taratino filmography table above.
 
 The following table summarizes the model components, and provides two posterior summary statistics for $\theta$ (Note: $\Gamma(\alpha, \beta) = \text{Gamma}(\alpha, \beta)$).  
 
@@ -149,7 +146,7 @@ $$p(y ~|~ \theta) \propto \theta^{\left(\sum\limits_{i=1}^n y_i\right)} \exp\lef
 Since the conjugate prior distribution for the Poisson sampling distribution is the Gamma distribution, the prior distribution of $\theta$ will be of the form:  
 $$p(\theta) \propto \theta^{\alpha - 1}e^{-\beta\cdot\theta}$$
 
-The parameters of the conjugate prior distributions for each model were calculated by solving analytically a pair of equations for $\alpha$ and $\beta$ (Lee, 2016). The equations were determined by (1) setting the mode formula for the gamma distribution equal to the mode of the kernel density estimate, and by (2) observing the interval that approximately 99.9% of the historical data subset was contained in. For modes of the kernel density estimates are 8.61, 17.85, and 43.83, respectively. The intervals that appeared to contain 99.9% of the historical data were (0,150), (0,150), and (0,400), respectively. See section *[TODO]* of the appendix for the mathematical equations and plots of the kernel density estimates and theoretical gamma distributions.
+The parameters of the conjugate prior distributions for each model were calculated by solving analytically a pair of equations for $\alpha$ and $\beta$ (Lee, 2016). The equations were determined by (1) setting the mode formula for the gamma distribution equal to the mode of the kernel density estimate, and by (2) observing the interval that approximately 99.9% of the historical data subset was contained in. For modes of the kernel density estimates are 8.61, 17.85, and 43.83, respectively. The intervals that appeared to contain 99.9% of the historical data were (0,150), (0,150), and (0,400), respectively. See the *Model Derivations* section of the appendix for the mathematical equations and plots of the kernel density estimates and theoretical gamma distributions.
 
 ```{r, echo = FALSE}
 ## Model 1
@@ -171,13 +168,11 @@ beta.m3 <- 0.023
 d3 <- density(dc.filt.m3$Kill_Rate, kernel = "epanechnikov", bw = h, from = 0, to = 400)
 ```
 
-
-
 ## Posterior: Gamma
 
 In general, the posterior distribution is Gamma$\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$ (Gelman et. al, pg. 45)
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, fig.width=8, fig.height=3}
 par(mfrow = c(1,3))
 ## Model 1
 t.sum.m1 <- sum(qt.m1$hours)
@@ -225,9 +220,9 @@ names(hpd.df) <- c("Model", "Lower Bound", "Upper Bound")
 # knitr::kable(hpd.df, align = "l")
 ```
 
-## Posterior Predictive Distribution
+## Posterior Predictive: Negative Binomial
 
-The posterior predictive distribution for a single additional observation is a negative binomial distribution of the form $\text{NB}\left(\alpha + \sum\limits_{i=1}^n y_i ~,~ \frac{1}{\tilde{t}}\left[\beta + \sum\limits_{i=1}^n t_i \right]\right)$ (Gelman et.al., pg. 44-45). See section *[TODO]* of appendix for derivation. For a sample of potential movie durations, the most likely body count values broken down by model in Quentin Taratino's next movie are summarized in the following table.  
+The posterior predictive distribution for a single additional observation is a negative binomial distribution of the form $\text{NB}\left(\alpha + \sum\limits_{i=1}^n y_i ~,~ \frac{1}{\tilde{t}}\left[\beta + \sum\limits_{i=1}^n t_i \right]\right)$ (Gelman et.al., pg. 44-45). See the *Model Derivations* section of the appendix for details. For a sample of potential movie durations, the most likely body count values broken down by model in Quentin Taratino's next movie are summarized in the following table.  
 
 Model | Movie Duration (hours) | Body Count | $\text{Pr}(\tilde{y} ~\vert~ y)$
 ------|--------|---------|----------
@@ -244,7 +239,7 @@ Model | Movie Duration (hours) | Body Count | $\text{Pr}(\tilde{y} ~\vert~ y)$
 &nbsp;  | 2.5 | 385  | 0.014
 &nbsp;  | 3   | 462  | 0.013
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, fig.width=8}
 def.par <- par(no.readonly = TRUE)
 margins <- par("mar")
 layout(matrix(c(1,1,2,3), 2, 2, byrow = TRUE))
@@ -286,7 +281,7 @@ for (i in 1:4) {
   lines(0:140, post.preds[i, ], pch = 20, col = col.vec[i], type = "b", lwd = 0.5)
   lines(rep(x.modes.m2[i] - 1, 2), c(-0.1, modes.m2[i]), col = "grey50", lty = 3)
 }
-axis(1, seq.int(0,140,20), col = "gray50")
+axis(1, seq.int(0,160,40), col = "gray50")
 axis(2, seq.int(0,0.06,0.02), col = "gray50")
 title(main = "Model 2", xlab = expression(tilde(y)), ylab = expression(paste("Pr(", tilde(y), " | y)", sep = "")), line = 2)
 #legend("topright", title = "Movie Duration (hours)", legend = t.new, col = col.vec, pch = 20, ncol = 2, bty = "n")
@@ -308,7 +303,7 @@ for (i in 1:4) {
   lines(0:600, post.preds[i, ], pch = 20, col = col.vec[i], type = "b", lwd = 0.5)
   lines(rep(x.modes.m3[i] - 1, 2), c(-0.1, modes.m3[i]), col = "grey50", lty = 3)
 }
-axis(1, seq.int(0,600,50), col = "gray50")
+axis(1, seq.int(0,600,100), col = "gray50")
 axis(2, seq.int(0,0.024,0.006), col = "gray50")
 title(main = "Model 3", xlab = expression(tilde(y)), ylab = expression(paste("Pr(", tilde(y), " | y)", sep = "")), line = 2)
 #legend("topright", title = "Movie Duration (hours)", legend = t.new, col = col.vec, pch = 20, ncol = 2, bty = "n")
@@ -329,7 +324,7 @@ names(ppd.df) <- c("Movie Duration (hours)", "Model 1: Body Count", "Model 1: Pr
 
 ### Posterior Predictive Checking  
 
-The following table summarizes the posterior predictive p-values from the seven test quantities calculated for model 1. For each, 500,000 replications were calculated. Column 3 indicates whether the p-value was calculated using the proportion of simulated values of $T(y^{rep}(t^{*}), \theta)$ greater than or equal to the observed value $T(y, \theta)$ or the proportion of simulated values less than or equal to the observed value. See the appendix for more details.  
+The following plots summarize the results of three test quantities for model 1: the minimum, maximum, and the ratio of the sample variance to the sample mean. Note, only model 1 has enough data points to calculate meaningful test quantities, so posterior predictice checking was not performed for models 2 and 3. The red vertical line in the plots indicates the test quantity value for the observed data; the blue histogram represents the test quantity evaluated for 500,000 replications of simulated data. See the *Model Checking* section of the appendix for details on the simulation procedure and the code used to generate the replications. Observed individually, the plots for minimum and maximum do not suggest strong discrepancies between the model and the observed data, but interpreted together they do raise some concern about the spread of the data. Too much spread in the data suggests overdispersion, which in turn may mean the Poisson model is not appropriate. An interesting feature of the Poisson sampling distribution is that the expectation and variance are equal. Thus, we would expect the ratio of sample variance to sample mean to be around one if the data is truly from the Poisson distribution. The plot of variance-mean ratio shows a significant discrepancy between the observed value and the simulated values. Thus, our model is not capturing the variance in our data well. A model that allows the variance to be fit separately from the mean, such as negative binomial or normal, would likely provide a better fit to our data.
 
 ```{r, echo = FALSE}
 ## Simulation set=up
@@ -361,7 +356,7 @@ sim.ratio <- sim.var / sim.mean
 pval.ratio <- length(sim.ratio[sim.ratio <= obs.ratio]) / m
 ```
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, fig.width=8}
 def.par <- par(no.readonly = TRUE)
 margins <- par("mar")
 layout(matrix(c(1,1,2,3), 2, 2, byrow = TRUE))
@@ -417,7 +412,7 @@ The following is a detailed description of the filtering applied to the original
 0.999 & = \int\limits_0^{u} \frac{\beta^{\alpha}}{\Gamma(\alpha)}\theta^{\alpha -1}\text{e}^{-\beta}{\theta}
 \end{align}
 
-```{r, echo = FALSE, fig.height=3}
+```{r, echo = FALSE, fig.width=8, fig.height=3}
 par(mfrow = c(1,3))#, cex.axis = 0.75, cex.main = 0.75, cex.lab = 0.75)
 plot(1,0.01, ann = FALSE, axes = FALSE,
      xlim = c(0, 160), ylim = c(0, 0.05), 
@@ -484,7 +479,7 @@ I_n(\theta) & = \text{E}\left\{ \left(\frac{\partial}{\partial \theta} \log p(y~
 
 ## Model Checking
 
-##### Posterior predictive checking: simulation procedure
+##### Posterior preditive checking: simulation procedure
 
 Because our sampling distribution involves rate and exposure, we must appropriately account for the exposure, $t$, when approximating the distribution of $T(y^{rep}, \theta)$ using simulation. The simulation will be performed as follows:  
 
