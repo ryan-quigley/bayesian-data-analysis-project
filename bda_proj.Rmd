@@ -11,7 +11,7 @@ fontsize: 11pt
 
 # I. Executive Summary  
 
-Quentin Tarantino’s moves are famous (or notorious) for violent death and massacre. In this project, we use Bayesian method to analyze and predict the body count in Quentin Tarantino’s next movie.  Using a body counts dataset of about 200 movies, we explored the possible factors, such a genre, rating, and year of publication, that could be associated with body count of a movie. Among all the factors, the association of genre with body count is significant.  War movies have much more body counts than other movies. Thus, we decided to build different models for different genres, one for war movies, and two for other movies, such as drama, crime, thriller, western, and action. We used the distribution of the body counts of other movies, except Tarantino’s to specify the parameters of the conjugate prior of different models. We picked Poisson distribution to model the sample data. Detailed justification of using Poisson model is provided later. Our results show that for the same movie duration, if Quentin Tarantino’s next movie is about a war, the body count could be as many as 38 times a non-war related movie.  
+Quentin Tarantino’s moves are famous (or notorious) for violent death and massacre. In this project, we use Bayesian methods to analyze and predict the body count in Quentin Tarantino’s next movie: not a simple task for such an eccentric and unpredictable filmmaker. Even though he has a reputation for violence, the amount and type vary widely from movie to movie. With this in mind, we realized that his collection of movies did not all belong to a single population; there is a natural separation within the collection which suggests that the data be separated into three different groups. As a result, we created three separate models, one for each group. Given the nature of the data, we chose the Poisson model for our sampling distributions. Using an external dataset containing the body counts and metadata of about 200 movies, we explored the possible factors, such a genre, rating, and release year, that could be associated with body count of a movie. Among all the factors, the association of genre with body count is most notably. This allowed us to develop informed conjugate prior relevant to the data within each models. Our results show that for the same movie duration, if Quentin Tarantino’s next movie is about a war, the body count could be as many as 38 times a non-war related movie.  
 
 ```{r global_options, include=FALSE}
 knitr::opts_chunk$set(fig.align = "center")
@@ -44,7 +44,7 @@ qt <- qt[, c(1,6,5,3,2,4,7,8,9,10)]
 
 ##### Taratino Filmography (as writer and director)  
 
-The table below provides the background information of nine movies directed and written by Tarantino. The movies included in each model are indicated in the Model column. Metadata extracted from IMDB (IMDB, 2016); body count extracted from Vanity Fair infographic (Down for the count, 2013)
+The table below provides the background information of nine movies directed and written by Tarantino. The movies included in each model are indicated in the Model column. Metadata extracted from IMDB (http://www.imdb.com/); body count extracted from Vanity Fair infographic (Beggs & Handy, 2013)
 
 ```{r, echo = FALSE}
 qt.data.sum <- qt[, 1:7]
@@ -120,7 +120,7 @@ Model | Prior                 |  Likelihood        | Posterior                | 
 
 The Poisson model parameterized in terms of rate and exposure is,  
 $$p(y ~|~ \theta) = \frac{1}{y!}(\theta t)^{y}e^{-(\theta t)} \cdot {1}_{\{0,1,2,...\}}(y)$$  
-According to Gelman et. al. (pg. 45), this model is not exchangeable in the $y_i$'s but is exchangeable in the pairs $(t,y)_i$. For our analysis, $\theta$ is the uknown kill rate per hour.
+According to Gelman et al. (2003, pg. 45), this model is not exchangeable in the $y_i$'s but is exchangeable in the pairs $(t,y)_i$. For our analysis, $\theta$ is the uknown kill rate per hour.
 
 ##### Assumptions and Justification
 
@@ -160,7 +160,7 @@ d3 <- density(dc.filt.m3$Kill_Rate, kernel = "epanechnikov", bw = h, from = 0, t
 
 ## Posterior: Gamma
 
-In general, the posterior distribution is Gamma$\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$ (Gelman et. al, pg. 45)
+In general, the posterior distribution is Gamma$\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$ (Gelman et al., 2003, pg. 45). The parameterization of each posterior distribution is summarized in the table at the top of this section, and plots of the prior and posterior are included below for additional clarity. Please take note of the different scale of the vertical axis in each plot. For a closer look at the prior distributions for each model see the *Model Derivations* section of the appendix.
 
 ```{r, echo = FALSE, fig.width=8, fig.height=3}
 par(mfrow = c(1,3))
@@ -212,22 +212,15 @@ names(hpd.df) <- c("Model", "Lower Bound", "Upper Bound")
 
 ## Posterior Predictive: Negative Binomial
 
-The posterior predictive distribution for a single additional observation is a negative binomial distribution of the form $\text{NB}\left(\alpha + \sum\limits_{i=1}^n y_i ~,~ \frac{1}{\tilde{t}}\left[\beta + \sum\limits_{i=1}^n t_i \right]\right)$ (Gelman et.al., pg. 44-45). See the *Model Derivations* section of the appendix for details. For a sample of potential movie durations, the most likely body count values broken down by model in Quentin Taratino's next movie are summarized in the following table.  
+The posterior predictive distribution for a single additional observation is a negative binomial distribution of the form $\text{NB}\left(\alpha + \sum\limits_{i=1}^n y_i ~,~ \frac{1}{\tilde{t}}\left[\beta + \sum\limits_{i=1}^n t_i \right]\right)$ (Gelman et al., 2003, pg. 44-45). See the *Model Derivations* section of the appendix for details. Taking the average movie duration for each model, the most likely body count values broken down by model in Quentin Taratino's next movie are summarized in the following table.  
 
 Model | Movie Duration (hours) | Body Count | $\text{Pr}(\tilde{y} ~\vert~ y)$
 ------|--------|---------|----------
-1       | 1.5 | 6    | 0.15
-&nbsp;  | 2   | 8    | 0.127
-&nbsp;  | 2.5 | 10   | 0.112
-&nbsp;  | 3   | 12   | 0.1
-2       | 1.5 | 40   | 0.054
-&nbsp;  | 2   | 54   | 0.045
-&nbsp;  | 2.5 | 68   | 0.039
-&nbsp;  | 3   | 81   | 0.034
-3       | 1.5 | 231  | 0.021
-&nbsp;  | 2   | 308  | 0.017
-&nbsp;  | 2.5 | 385  | 0.014
-&nbsp;  | 3   | 462  | 0.013
+1     | 2.3    | 9    | 0.117
+2     | 2.3    | 62   | 0.041
+3     | 2.5    | 385  | 0.014
+
+The plots show the full posterior predictive distribution of each model for a sample of easily interpretable movie durations. For each model, the spread of the distribution increases with movie duration meaning our predictions for the next movie are less precise.
 
 ```{r, echo = FALSE, fig.width=8}
 def.par <- par(no.readonly = TRUE)
@@ -391,6 +384,25 @@ par(mar = margins)
 
 # IV. Appendix 
 
+## Table of Posterior Predictions for Next Movie
+
+For a sample of potential movie durations, the most likely body count values broken down by model in Quentin Taratino's next movie are summarized in the following table.  
+
+Model | Movie Duration (hours) | Body Count | $\text{Pr}(\tilde{y} ~\vert~ y)$
+------|--------|---------|----------
+1       | 1.5 | 6    | 0.15
+&nbsp;  | 2   | 8    | 0.127
+&nbsp;  | 2.5 | 10   | 0.112
+&nbsp;  | 3   | 12   | 0.1
+2       | 1.5 | 40   | 0.054
+&nbsp;  | 2   | 54   | 0.045
+&nbsp;  | 2.5 | 68   | 0.039
+&nbsp;  | 3   | 81   | 0.034
+3       | 1.5 | 231  | 0.021
+&nbsp;  | 2   | 308  | 0.017
+&nbsp;  | 2.5 | 385  | 0.014
+&nbsp;  | 3   | 462  | 0.013
+
 ## Multinomial Condition Check
 
 In order to justify that $y_i,...,y_n$ are c.i.i.d poisson observations given $\theta$, a necessary and sufficient condition is that
@@ -403,7 +415,7 @@ mltnom.check.m1 <- rmultinom(n = 10000, prob = rep(1/6, 6), size = 59)
 mltnom.check.m2 <- rmultinom(n = 10000, prob = rep(1/2, 2), size = 126)
 ```
 
-```{r, echo = FALSE, fig.width=8, fig.height=3}
+```{r, echo = FALSE, fig.width=8, fig.height=3.5}
 par(mfrow = c(1,2), cex.axis = 0.75, cex.main = 0.75, cex.lab = 0.75)
 mltnom.check.m1 <- rmultinom(n = 10000, prob = rep(1/6, 6), size = sum(qt.m1$body.count))
 stripchart(mltnom.check.m1, method = "stack", offset = 0.0008, pch = 20, 
@@ -426,7 +438,7 @@ par(mfrow = c(1,1))
 
 ##### Conjugate prior: gamma
 
-The following is a detailed description of the filtering applied to the original historical movie sample. First all movies with Quentin Tarantino as director were removed. This excluded one movie not in the dataset described above where Tarantino was a director but not a writer: Sin City. Next, we restricted the range of years to exclude any movies released prior to 1989. This was done to avoid influence from movies in a time period with dramatically different social views about movie violence. We assumed movies released in the three years prior to the release of his first movie (*Reservoir Dogs*, 1992) would also be similar enough in nature. All of the Tarantino movies have an MPAA rating of R with the exception of *Death Proof*, which was unrated. As a result, we included movies with ratings R or Unrated. The filter conditions discussed so far apply to all three models, but the filtering based on genre is specific to each model. For both model 1 and model 2, the unique set of genres was determined for the data points in each model. For model 1, the set consists of crime, drama, thriller, action, western, mystery; for model 2, action, thriller, drama, western. Using these sets, a movie from the historical sample was included if one of two conditions was met: (1) all its genres matched the unique genre set, or (2) at least 3 of its genres matched the unique genre set. The number of genres listed for a movie can vary quite a bit, so these conditions help prevent the filtering from excluding too many movies. For Model 3, the genre filter condition is simply a check to see if the movie has the genre war. This condition is far less restrictive than those for models 1 and 2, but is necessary due to the small number of war movies with recorded body counts. We suspect this is due to the difficulty and tedium of recording body counts for war movies. One final note: the original historical movie dataset does not contain any movies with zero deaths. For our purposed, this ensures the kill rate per hour is greater than zero, which is appropriate for the support of the Gamma distribution.  
+The following is a detailed description of the filtering applied to the original historical movie sample. First all movies with Quentin Tarantino as director were removed. This excluded one movie not in the dataset described above where Tarantino was a director but not a writer: Sin City. Next, we restricted the range of years to exclude any movies released prior to 1989. This was done to avoid influence from movies in a time period with dramatically different social views about movie violence. We assumed movies released in the three years prior to the release of his first movie (*Reservoir Dogs*, 1992) would also be similar enough in nature. All of the Tarantino movies have an MPAA rating of R with the exception of *Death Proof*, which was unrated. As a result, we included movies with ratings R or Unrated. The filter conditions discussed so far apply to all three models, but the filtering based on genre is specific to each model. For both model 1 and model 2, the unique set of genres was determined for the data points in each model. For model 1, the set consists of crime, drama, thriller, action, western, mystery; for model 2, action, thriller, drama, western. Using these sets, a movie from the historical sample was included if one of two conditions was met: (1) all its genres matched the unique genre set, or (2) at least 3 of its genres matched the unique genre set. The number of genres listed for a movie can vary quite a bit, so these conditions help prevent the filtering from excluding too many movies. For Model 3, the genre filter condition is simply a check to see if the movie has the genre war. This condition is far less restrictive than those for models 1 and 2, but is necessary due to the small number of war movies with recorded body counts (we suspect this is due to the difficulty and tedium of recording body counts for war movies). The influence war has on body count will outweigh the influence of any other genre also listed, so we believe this less restrictive condition for model 3 is not problematic. One final note: the original historical movie dataset does not contain any movies with zero deaths. For our purposes, this ensures the kill rate per hour is greater than zero, which is appropriate for the support of the Gamma distribution.  
 
 \begin{align}
 \text{Mode}(\theta) & = \frac{\alpha - 1}{\beta} \\
@@ -482,21 +494,18 @@ title(main = "Model 3", xlab = expression(theta), ylab = "Density")
 par(mfrow = c(1,1))
 ```
 
-##### Posterior preditive distribution: negative binomial [ADD STEPS!!!]
+##### Posterior preditive distribution: negative binomial
+
+Let $\alpha' = \alpha + \sum\limits_{i=1}^n y_i$ and $\beta' = \beta + \sum\limits_{i=1}^n t_i$
 \begin{align*}
 p(\tilde{y} ~|~ y) & = \int\limits_0^{\infty} p(\tilde{y} ~|~ \theta)\cdot p(\theta ~|~ y) ~d\theta \\
 & = \int\limits_0^{\infty} \text{Poisson}(\tilde{y}(t) ~|~ \theta) \cdot \text{Gamma}\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right) ~d\theta \\
+& = \frac{\beta'}{\Gamma(\alpha')} \tilde{t}^{\tilde{y}} \cdot 1_{\{0,1,...\}}(\tilde{y})\int\limits_0^{\infty} \theta^{(\alpha' + \tilde{y}) - 1}e^{-(\beta' + t)\theta}d\theta \\
+& = \frac{\beta'}{\Gamma(\alpha')} \tilde{t}^{\tilde{y}} \cdot 1_{\{0,1,...\}}(\tilde{y}) \cdot \frac{\Gamma(\alpha' + \tilde{y})}{(\beta' + t)^{\alpha' + \tilde{y}}} \\
+& = \frac{\Gamma(\alpha' + \tilde{y})}{\tilde{y}!\Gamma(\alpha')}\left(\frac{\beta'}{\beta' + \tilde{t}}\right)^{\alpha'}\left(\frac{\tilde{t}}{\beta' + \tilde{t}}\right)^{\tilde{y}} 1_{\{0,1,...\}}(\tilde{y}) \\
+& = \frac{\Gamma(\alpha' + \tilde{y})}{\tilde{y}!\Gamma(\alpha')}\left(\frac{\beta'/\tilde{t}}{\beta'/\tilde{t} + 1}\right)^{\alpha'}\left(\frac{1}{\beta'/\tilde{t} + 1}\right)^{\tilde{y}} 1_{\{0,1,...\}}(\tilde{y}) \\
 & = \text{NB}\left(\alpha + \sum\limits_{i=1}^n y_i ~,~ \frac{1}{\tilde{t}}\left[\beta + \sum\limits_{i=1}^n t_i \right]\right)
 \end{align*}
-
-##### Noninformative (Jeffreys) Prior  
-\begin{align*}
-I_n(\theta) & = \text{E}\left\{ \left(\frac{\partial}{\partial \theta} \log p(y~|~\theta)\right)^2 ~\Bigg|~ \theta \right\} \\
-& = \frac{1}{\theta^2} \text{E}\left[\left(\sum\limits_{i=1}^n y_i - \theta\sum\limits_{i=1}^n t_i\right)^2 ~\Bigg|~ \theta \right] \\
-& = \frac{1}{\theta^2} \text{Var}\left( \sum\limits_{i=1}^n y_i ~\Bigg|~ \theta \right) && \text{assuming $y_i$ are $c.i.i.d$ given $\theta$} \\
-& = \frac{1}{\theta} \cdot \sum\limits_{i=1}^n t_i \\
-\implies p(\theta) & \propto \sqrt{\frac{1}{\theta}}
-\end{align*} 
 
 ## Model Checking
 
@@ -509,9 +518,9 @@ Because our sampling distribution involves rate and exposure, we must appropriat
 3. For each $(\theta^{(i)} \cdot t^{*})$, simulate a draw $y^{rep(i)}(t^{*})$ from Poisson$(\theta^{(i)} \cdot t^{*})$
 4. Calculate $T(y^{rep(i)}(t^{*}), \theta^{(i)})$ for $i$ = 1,..., 500000.
 
-For model 1 mostly, this presents a problem when deciding what value of $t^{*}$ to choose for each simulation. To address this issue, we note that there does not appear to be a strong relationship between body count and movie duration, which is supported by a low correlation value of 0.21 and the plot below. As a result, we draw $t^{*}$ randomly from $U(min\{t_1,...t_n\}, max\{t_1,...t_n\})$ in step 2 of the simulation procedure. In the case of model 1, this is the interval [1.65, 2.78]; for model 2, this is the interval [1.85, 2.75]. For model 3, we simply take $t^{*}$ = 2.55 since the model only has a single data point.
+For model 1, this presents a problem when deciding what value of $t^{*}$ to choose for each simulation. To address this issue, we note that there does not appear to be a strong relationship between body count and movie duration, which is supported by a low correlation value of 0.21 and the plot below. As a result, we draw $t^{*}$ randomly from $U(min\{t_1,...t_n\}, max\{t_1,...t_n\})$ in step 2 of the simulation procedure. In the case of model 1, this is the interval [1.65, 2.78].
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, fig.width=8, fig.height=4}
 plot(qt$hours, qt$body.count, ann = FALSE, axes = FALSE, xlim = c(1.5, 3), ylim = c(0,20), col = "violetred", pch = 20)
 #box(col = "gray50", lty = 1)
 axis(1, at = seq.int(1.5, 3, 0.5), col = "gray50")
@@ -556,9 +565,17 @@ pval.ratio <- length(sim.ratio[sim.ratio <= obs.ratio]) / m
 
 ##### Sensitivity to Prior Distribution
 
-In this section we consider the effects of the choice of prior distribution on posterior inference, particularly the effects of a noninformative prior instead of the gamma conjugate prior. The Jeffreys prior for $\theta$ follows from the Fisher information, which results in an improper noninformative prior: $p(\theta) \propto \sqrt{\frac{1}{\theta}}$; however, this does not prevent us from finding a posterior distribution for $\theta$ **[WHY???]**. The resulting posterior distribution for $\theta$ is Gamma$\left(0.5 + \sum\limits_{i=1}^n y_i, \sum\limits_{i=1}^n t_i\right)$. Below are the plots of the posterior distributions of $\theta$ as a result of using a conjugate prior and a non-informative prior. In all three models the differences are neglible, so a choosing a non-informative prior instead of a conjugate prior would have little impact on posterior inference.
+In this section we consider the effects of the choice of prior distribution on posterior inference, particularly the effects of a noninformative prior instead of the gamma conjugate prior. The Jeffreys prior for $\theta$ follows from the Fisher information,  
+\begin{align*}
+I_n(\theta) & = \text{E}\left\{ \left(\frac{\partial}{\partial \theta} \log p(y~|~\theta)\right)^2 ~\Bigg|~ \theta \right\} \\
+& = \frac{1}{\theta^2} \text{E}\left[\left(\sum\limits_{i=1}^n y_i - \theta\sum\limits_{i=1}^n t_i\right)^2 ~\Bigg|~ \theta \right] \\
+& = \frac{1}{\theta^2} \text{Var}\left( \sum\limits_{i=1}^n y_i ~\Bigg|~ \theta \right) && \text{assuming $y_i$ are $c.i.i.d$ given $\theta$} \\
+& = \frac{1}{\theta} \cdot \sum\limits_{i=1}^n t_i \\
+\implies p(\theta) & \propto \sqrt{\frac{1}{\theta}}
+\end{align*}  
+This results in an improper noninformative prior; however, this does not prevent us from finding a posterior distribution for $\theta$. The resulting posterior distribution for $\theta$ is Gamma$\left(0.5 + \sum\limits_{i=1}^n y_i, \sum\limits_{i=1}^n t_i\right)$. Below are the plots of the posterior distributions of $\theta$ as a result of using a conjugate prior and a non-informative prior. In all three models the differences are neglible, so a choosing a non-informative prior instead of a conjugate prior would have little impact on posterior inference.
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, fig.width=8, fig.height=4}
 par(mfrow = c(1,3))
 curve(dgamma(x, shape = y.sum.m1 + 0.5, rate = t.sum.m1), 
       from = 0, to = 10, 
@@ -595,22 +612,23 @@ par(mfrow = c(1,1))
 
 # V. References
 
+Gelman, A., Carlin, J. B., Stern, H. S., & Rubin, D. B. (2014). Bayesian data analysis (Vol. 2). Boca Raton, FL, USA: Chapman & Hall/CRC.
+
 Dr. Lee R code
-
-IMDB. http://www.imdb.com/
-
-http://www.moviebodycounts.com/
 
 Olson, Randy (2013): On-screen movie kill counts for hundreds of films. figshare.
 https://dx.doi.org/10.6084/m9.figshare.889719.v1
 Retrieved: 01 39, Nov 29, 2016 (GMT)
 
-Vanity Fair. http://www.vanityfair.com/hollywood/2013/02/quentin-tarantino-deaths-movies
+Beggs, A. & Handy, B. (2013, February 13). *Down for the count*. Retrieved from
+http://www.vanityfair.com/hollywood/2013/02/quentin-tarantino-deaths-movies
 
-Gelman et al.
+Robinson, J. (2016, July 12). *Does Quentin Tarantino Really Have Just Two More Movies in Him?* Retrieved from
+http://www.vanityfair.com/hollywood/2016/07/quentin-tarantino-ten-movies-retirement
+
 
 Poisson distribution. (2016, November 27). In Wikipedia, The Free Encyclopedia. Retrieved 18:33, November 27, 2016, from https://en.wikipedia.org/w/index.php?title=Poisson_distribution&oldid=751763566
 
 Gamma distribution. (2016, November 8). In Wikipedia, The Free Encyclopedia. Retrieved 19:13, November 8, 2016, from https://en.wikipedia.org/w/index.php?title=Gamma_distribution&oldid=748540178
  
-The Tarantino Death Toll. https://vimeo.com/148832585
+Lee, K. B. (2016). *The Tarantino Death Toll* [Video]. Retrieved from https://vimeo.com/148832585
