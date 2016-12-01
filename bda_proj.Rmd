@@ -1,5 +1,6 @@
 ---
-title: 'MATH 264: Bayesian Project'
+title: 'MATH 264: Bayesian Data Analysis Project'
+subtitle: 'Body Count Analysis of Quentin Tarantino Movies'
 author: "Terry Situ, Caie Yan, Ryan Quigley"
 date: "December 1, 2016"
 geometry: margin=0.5in
@@ -14,7 +15,7 @@ fontsize: 11pt
 
 # I. Executive Summary  
 
-Quentin Tarantino’s moves are famous (or notorious) for violent death and massacre. In this project, we use Bayesian methods to analyze and predict the body count in Quentin Tarantino’s next movie: not a simple task for such an eccentric and unpredictable filmmaker. Even though he has a reputation for violence, the amount and type vary widely from movie to movie. With this in mind, we realized that his collection of movies did not all belong to a single population; there is a natural separation within the collection which suggests that the data be separated into three different groups. As a result, we created three separate models, one for each group. Given the nature of the data, we chose the Poisson model for our sampling distributions. Using an external dataset containing the body counts and metadata of about 200 movies, we explored the possible factors, such a genre, rating, and release year, that could be associated with body count of a movie. Among all the factors, the association of genre with body count is most notably. This allowed us to develop informed conjugate prior relevant to the data within each models. Our results show that for the same movie duration, if Quentin Tarantino’s next movie is about a war, the body count could be as many as 38 times a non-war related movie.  
+Quentin Tarantino’s moves are famous (or notorious) for violent death and massacre. In this project, we use Bayesian methods to analyze and predict the body count in Quentin Tarantino’s next movie: not a simple task for such an eccentric and unpredictable filmmaker. Even though he has a reputation for violence, the amount and type vary widely from movie to movie. With this in mind, we realized that his collection of movies did not all belong to a single population; there is a natural separation within the collection which suggests that the data be separated into three different groups. As a result, we fit three separate models, one for each group. Given the nature of the data, we chose the Poisson model for our sampling distributions. Using an external dataset containing the body counts and metadata of about 200 movies, we explored the possible factors, such a genre, rating, and release year, that could be associated with body count of a movie. Among all the factors, the association of genre with body count is most notably. This allowed us to develop informed conjugate priors relevant to the data within each models. Using the resulting gamma posterior and negative binomial posterior predictive distribution, our models provide predictions for Tarantino's next movie in three different scenarios; however, given that the majority of his movies belong to one group, we predict that the most likely death count of his next movie will be 9 assuming the movie length is 2.3 hours.
 
 ```{r global_options, include=FALSE}
 knitr::opts_chunk$set(fig.align = "center")
