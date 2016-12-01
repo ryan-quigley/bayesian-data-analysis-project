@@ -11,8 +11,10 @@ fontsize: 12pt
 
 # I. Executive Summary  
 
+Quentin Tarantino’s moves are famous (or notorious) for violent death and massacre. In this project, we use Bayesian method to analyze and predict the body count in Quentin Tarantino’s next movie. We construct our prior belief on killed rate per hour based on 2xx movies with similar filming style, and update our belief with actual body count in all of his movies. In fact, we divide our study into 3 sub-models because we believe different movie genres should should have different death rates. At the end, our results show that for the same movie duration, if Quentin Tarantino’s next movie is about a war, the body count could be as many as 38 times a non-war related movie.
+
 ```{r global_options, include=FALSE}
-knitr::opts_chunk$set(fig.align = "center") # fig.width=12, fig.height=8
+knitr::opts_chunk$set(fig.align = "center")
 ```
 
 ```{r, echo = FALSE}
@@ -38,13 +40,13 @@ qt$model.3 <- c(0,0,0,0,0,0,1,0,0)
 qt <- qt[, c(1,6,5,3,2,4,7,8,9,10)]
 ```
 
-
 # II. Data Summary  
 
-Metadata extracted from [IMDB](http://www.imdb.com/)
+Metadata extracted from IMDB (IMDB, 2016); body count extracted from Vanity Fair infographic (Down for the count, 2013)
 
 ```{r, echo = FALSE}
 qt.data.sum <- qt[, 1:7]
+qt.data.sum$hours <- round(qt.data.sum$hours, 2)
 names(qt.data.sum) <- c("Movie", "Genre", "Year", "Rating", "Body Count", "Hours", "Kill Rate/Hr" )
 h8.gsplit <- unlist(strsplit(qt.data.sum[9,2], ", ", fixed = TRUE))
 kbv2.gsplit <- unlist(strsplit(qt.data.sum[5,2], ", ", fixed = TRUE))
@@ -52,30 +54,34 @@ qt.data.sum[5,2] <- paste(kbv2.gsplit[1:2], collapse = ", ")
 qt.data.sum[9,2] <- paste(h8.gsplit[1:3], collapse = ", ")
 qt.data.sum <- rbind(qt.data.sum[1:5, ], c("", paste(kbv2.gsplit[3:4], collapse = ", "), "", "", "", "", ""), 
                      qt.data.sum[6:9, ], c("", paste(h8.gsplit[4:5], collapse = ", "), "", "", "", "", ""))
-knitr::kable(qt.data.sum, align = "l", float = FALSE, row.names = FALSE)
+knitr::kable(qt.data.sum, align = c("l", "l", "l", "l", "r", "r", "r"), row.names = FALSE, digits = 2)
 ```
 
+# III. Models
 
-# III. Models & Distributions
+From the article where the infographic was originally published:  
 
 > "A few numbers are approximated due to the impossibility of counting precisely how many ninjas are decapitated in **Kill Bill Vol. 1**, how many Nazis are in the theater when it gets set afire in **Inglorious Basterds**, and how many people fall in the never-ending shoot-out scene at the end of **Django Unchained**."  
-> - Vanity Fair
+> - Vanity Fair  
 
-> "In practice, ignorance implies exchange- ability. Generally, the less we know about a problem, the more confidently we can make claims of exchangeability. (This is not, we hasten to add, a good reason to limit our knowl- edge of a problem before embarking on statistical analysis!)"  
+The body count numbers in these three movies are unsually large and require approximation for one main reason: each contains a single scene of unimaginable (to most people except Tarantino) violence that dramatically increasese the death toll. In light of this information, we find it impossible to judge exchangeability for the entire nine movie filmography of Tarantino as both writer and director. We belive Gelman et. al would support our judgement given their published opinion on the matter,  
+
+> "In practice, ignorance implies exchangeability. Generally, the less we know about a problem, the more confidently we can make claims of exchangeability. (This is not, we hasten to add, a good reason to limit our knowledge of a problem before embarking on statistical analysis!)"  
 > - Gelman et. al BDA
 
-Model summary:  
 
-Model | Prior            |  Likelihood            | Posterior                | Posterior Mode | 99% HPD Inteval
------|---------------------|------------------------|--------------------------|----------------|-----------------
- 1 | Gamma(1.46, 0.053)  | $\propto \theta^{59}e^{-13.73\theta}$ | Gamma(60.46, 13.79)  | 4.31   | [3.03, 5.92]
- 2 | Gamma(2.13, 0.064)  | $\propto \theta^{126}e^{-4.6\theta}$  | Gamma(128.13, 4.66)  | 25.26  | [21.49, 33.97]
- 3 | Gamma(2.015, 0.023) | $\propto \theta^{396}e^{-2.55\theta}$ | Gamma(398.015, 2.57) | 154. 3 | [135.20, 175.12]
+The following table summarizes the model components, and provides two summary statistics for $\theta$ (Note: $\Gamma(\alpha, \beta) = \text{Gamma}(\alpha, \beta)$).  
+
+Model | Prior                 |  Likelihood        | Posterior                | Posterior Mode | 99% HPD Inteval
+------|-----------------------|--------------------|--------------------------|-------------|-------------------------
+ 1 | $\Gamma(1.46, 0.053)$  | $\propto \theta^{59}e^{-13.73\theta}$ | $\Gamma(60.46, 13.79)$  | 4.31   | [3.03, 5.92]
+ 2 | $\Gamma(2.13, 0.064)$  | $\propto \theta^{126}e^{-4.6\theta}$  | $\Gamma(128.13, 4.66)$  | 25.26  | [21.49, 33.97]
+ 3 | $\Gamma(2.015, 0.023)$ | $\propto \theta^{396}e^{-2.55\theta}$ | $\Gamma(398.015, 2.57)$ | 154. 3 | [135.20, 175.12]
 
 
 ### Sampling Distribution: Poisson with rate and exposure
 
-According to Gelman et. al. (pg. 45), this model is NOT exchangeable in the $y_i$'s but is exchangeable in the pairs $(x,y)_i$
+According to Gelman et. al. (pg. 45), this model is NOT exchangeable in the $y_i$'s but is exchangeable in the pairs $(t,y)_i$
 
 ##### Assumptions and Justification
 
@@ -89,17 +95,15 @@ Let $y(t)$ denote the number of events that have occurred during a time interval
 
 Under these conditions, there exists a positive number $\theta$ that produces the density below where $\theta$ = the true underlying kill rate per hour in Quentin Taratino movies:  
 $$p(y ~|~ \theta) = \frac{1}{y!}(\theta t)^{y}e^{-(\theta t)} \cdot {1}_{\{0,1,2,...\}}(y)$$
-Given the plot structure of movies we would not expect the kill rate to be constant within the movie; however, with the information available we cannot determine whether or not this assumption is violated within each movie.
-  
+Given the plot structure of movies we would not expect the kill rate to be constant within the movie; however, with the information available we cannot determine whether or not this assumption is violated within each movie.  
+
 ### Likelihood
 
 A necessary and sufficient condition to get product of identical distributions is  
 $$p(y_1,...y_n ~|~ s_n) = \frac{s_n!}{y_1!,...,y_n!} \prod\limits_{i=1}^n \left(\frac{1}{n}\right)^{y_i}$$
-For every $n$, where $s_n = y_1 + ... + y_n$. This condition is not reasonably justified if we group all the data together; however, once grouped into three models, the condition seems reasonable within each model. Assuming this condition holds, the likelihood is:
-
+For every $n$, where $s_n = y_1 + ... + y_n$. This condition is not reasonably justified if we group all the data together; however, once grouped into three models, the condition seems reasonable within each model. Assuming this condition holds, the likelihood is:  
 $$p(y ~|~ \theta) \propto \theta^{\left(\sum\limits_{i=1}^n y_i\right)} \exp\left( -\theta \sum\limits_{i=1}^n t_i \right)$$
 
-    
 ### Conjugate Prior: Gamma
 
 Since the conjugate prior distribution for the Poisson sampling distribution is the Gamma distribution, the prior distribution of $\theta$ will be of the form:  
@@ -107,7 +111,7 @@ $$p(\theta) \propto \theta^{\alpha - 1}e^{-\beta\cdot\theta}$$
 
 ##### Historical Movie Database Sample  
 
-In order to estimate the parameters of the conjugate prior distribution for each model, we acquired a dataset compiled by Randal Olson from the site http://www.moviebodycounts.com/. See references for links to original dataset. The original data is filtered to make it more relevant to our analysis. First all movies with Quentin Tarantino as director were removed. This excluded one movie not in the dataset described above where Tarantino was a director but not a writer: Sin City. Next, we restricted the range of years to exclude any movies released prior to 1989. This was done to avoid influence from movies in a time period with dramatically different social views about movie violence. We assumed movies released in the three years prior to the release of his first movie (*Reservoir Dogs*, 1992) would also be similar enough in nature. All of the Tarantino movies have an MPAA rating of R with the exception of *Death Proof*, which was unrated. As a result, we included movies with ratings R or Unrated. The filter conditions discussed so far apply to all three models, but the filtering based on genre is specific to each model. For both model 1 and model 2, the unique set of genres was determined for the data points in each model. For model 1, the set consists of crime, drama, thriller, action, western, mystery; for model 2, action, thriller, drama, western. Using these sets, a movie from the historical sample was included if one of two conditions was met: (1) all its genres matched the unique genre set, or (2) at least 3 of its genres matched the unique genre set. The number of genres listed for a movie can vary quite a bit, so these conditions help prevent the filtering from excluding too many movies. For Model 3, the genre filter condition is simply a check to see if the movie has the genre war. This condition is far less restrictive than those for models 1 and 2, but is necessary due to the small number of war movies with recorded body counts. We suspect this is due to the difficulty and tedium of recording body counts for war movies. One final note: the original historical movie dataset does not contain any movies with zero deaths. For our purposed, this ensures the kill rate per hour is greater than zero, which is appropriate for the support of the Gamma distribution. The following table summarizes the kill rate per hour of the subset of the historical data used for each model:
+The following table summarizes the kill rate per hour of the subset of the historical data used for each model:
 
 ```{r, echo = FALSE}
 qt.all <- qt
@@ -144,84 +148,28 @@ names(genre.sum) <- c("Model", "N", "Min.", "1st Qu.", "Median", "Mean", "3rd Qu
 knitr::kable(genre.sum, align = "l")
 ```
 
-##### Model 1:
+The parameters of the conjugate prior distributions for each model were calculated by solving analytically a pair of equations for $\alpha$ and $\beta$ (Lee, 2016). The equations were determined by (1) setting the mode formula for the gamma distribution equal to the mode of the kernel density estimate, and by (2) observing the interval that approximately 99.9% of the historical data subset was contained in. For modes of the kernel density estimates are 8.61, 17.85, and 43.83, respectively. The intervals that appeared to contain 99.9% of the historical data were (0,150), (0,150), and (0,400), respectively. See section *[TODO]* of the appendix for the mathematical equations and plots of the kernel density estimates and theoretical gamma distributions.
 
 ```{r, echo = FALSE}
-## Conjugate prior stuff
+## Model 1
 h <- 5
 alpha.m1 <- 1.46
 beta.m1 <- 0.054
+d1 <- density(dc.filt.m1$Kill_Rate, kernel = "epanechnikov", bw = h, from = 0, to = 160)
 
-d1 <- density(dc.filt.m1$Kill_Rate, kernel = "epanechnikov", bw = h, from = 0, to = 200)
-plot(1,0.01, ann = FALSE, axes = FALSE,
-     xlim = c(0, 200), ylim = c(0, 0.06), 
-     bty = "n", type = "n")
-hist(dc.filt.m1$Kill_Rate, breaks = 30, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
-lines(d1, col = "violetred", lwd = 1.5)
-axis(1, at = seq.int(0, 200, 50))
-axis(2, at = seq.int(0, 0.06, 0.01))
-
-## Plot theoretical gamma distribution
-curve(dgamma(x, shape = alpha.m1, rate = beta.m1), from = 0, to = 200, add = TRUE, lty = 2, col = "slateblue")
-#legend("top", legend = paste(c("Mean =", "Mode =", "Variance ="), c(g.mean, g.mode, g.var)), bty = "n")
-legend("top", legend = c(paste("Gamma(", alpha.m1, ", ", beta.m1,")", sep = ""), "Kernel density estimate"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
-title(main = "Model 1", xlab = expression(theta), ylab = "Density")
-```
-
-The parameters for the Gamma distribution were determined by solving the system of equations generated by setting the mode equal to 8.61 and by observing that approximately 99.9% of the data is in the range (0,150).  
-
-##### Model 2: 
-
-```{r, echo = FALSE}
-## Conjugate prior stuff
+## Model 2: 
 h <- 10
 alpha.m2 <- 2.13
 beta.m2 <- 0.064
-
 d2 <- density(dc.filt.m2$Kill_Rate, kernel = "epanechnikov", bw = h, from = 0, to = 160)
-plot(1,0.01, ann = FALSE, axes = FALSE,
-     xlim = c(0, 160), ylim = c(0, 0.06), 
-     bty = "n", type = "n")
-hist(dc.filt.m2$Kill_Rate, breaks = 30, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
-lines(d2, col = "violetred", lwd = 1.5)
-axis(1, at = seq.int(0, 160, 20))
-axis(2, at = seq.int(0, 0.06, 0.01))
 
-## Plot theoretical gamma distribution
-curve(dgamma(x, shape = alpha.m2, rate = beta.m2), from = 0, to = 160, add = TRUE, lty = 2, col = "slateblue")
-#legend("top", legend = paste(c("Mean =", "Mode =", "Variance ="), c(g.mean, g.mode, g.var)), bty = "n")
-legend("top", legend = c(paste("Gamma(", alpha.m2, ", ", beta.m2,")", sep = ""), "Kernel density estimate"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
-title(main = "Model 2", xlab = expression(theta), ylab = "Density")
-```
-
-The parameters for the Gamma distribution were determined by solving the system of equations generated by setting the mode equal to 17.85 and by observing that approximately 99.9% of the data is in the range (0,150).  
-
-##### Model 3: 
-
-```{r, echo = FALSE}
-## Conjugate prior stuff
+## Model 3: 
 h <- 30
 alpha.m3 <- 2.015
 beta.m3 <- 0.023
-
 d3 <- density(dc.filt.m3$Kill_Rate, kernel = "epanechnikov", bw = h, from = 0, to = 400)
-plot(1,0.01, ann = FALSE, axes = FALSE,
-     xlim = c(0, 400), ylim = c(0, 0.02), 
-     bty = "n", type = "n")
-hist(dc.filt.m3$Kill_Rate, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
-lines(d3, col = "violetred", lwd = 1.5)
-axis(1, at = seq.int(0, 400, 50), labels = NA)
-axis(1, at = seq.int(0, 400, 100), lwd = 0, lwd.ticks = 0)
-axis(2, at = seq.int(0, 0.02, 0.005))
-
-## Plot theoretical gamma distribution
-curve(dgamma(x, shape = alpha.m3, rate = beta.m3), from = 0, to = 400, add = TRUE, lty = 2, col = "slateblue")
-#legend("top", legend = paste(c("Mean =", "Mode =", "Variance ="), c(g.mean, g.mode, g.var)), bty = "n")
-legend("top", legend = c(paste("Gamma(", alpha.m3, ", ", beta.m3,")", sep = ""), "Kernel density estimate"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
-title(main = "Model 3", xlab = expression(theta), ylab = "Density")
 ```
 
-The parameters for the Gamma distribution were determined by solving the system of equations generated by setting the mode equal to 43.83 and by observing that approximately 99.9% of the data is in the range (0,400).  
 
 
 ### Posterior Distribution  
@@ -266,7 +214,6 @@ title(main = "Model 3", xlab = expression(theta), ylab = "Density")
 par(mfrow = c(1,1))
 ```
 
-
 ```{r, echo = FALSE}
 p <- 0.99
 hpd.m1 <- HDInterval::hdi(qgamma, shape = alpha.post.m1, rate = beta.post.m1, credMass = p)
@@ -285,7 +232,7 @@ The posterior predictive distribution for a single additional observation is a n
 def.par <- par(no.readonly = TRUE)
 margins <- par("mar")
 layout(matrix(c(1,1,2,3), 2, 2, byrow = TRUE))
-par(mar = c(3.1,3.1,3.1,2.1), cex.axis = 0.75, cex.main = 0.75, cex.lab = 0.75)
+par(mar = c(3.1,3.1,3.1,2.1))
 
 ## Model 1
 t.new <- seq.int(1.5, 3, 0.5)
@@ -356,73 +303,28 @@ par(def.par)
 par(mar = margins)
 ```
 
-
 Thus, the most likely values for the body count in Quentin Taratino's next movie are:  
 
 Model | Movie Duration (hours) | Body Count | $\text{Pr}(\tilde{y} ~\vert~ y)$
 ------|--------|---------|----------
-1       | 1.5 | 6  | 0.15
-&nbsp;  | 2   | 8  | 0.127
-&nbsp;  | 2.5 | 10 | 0.112
-&nbsp;  | 3   | 12 | 0.1
-2       | 1.5 | 6  | 0.15
-&nbsp;  | 2   | 8  | 0.127
-&nbsp;  | 2.5 | 10 | 0.112
-&nbsp;  | 3   | 12 | 0.1
-3       | 1.5 | 6  | 0.15
-&nbsp;  | 2   | 8  | 0.127
-&nbsp;  | 2.5 | 10 | 0.112
-&nbsp;  | 3   | 12 | 0.1
-
+1       | 1.5 | 6    | 0.15
+&nbsp;  | 2   | 8    | 0.127
+&nbsp;  | 2.5 | 10   | 0.112
+&nbsp;  | 3   | 12   | 0.1
+2       | 1.5 | 40   | 0.054
+&nbsp;  | 2   | 54   | 0.045
+&nbsp;  | 2.5 | 68   | 0.039
+&nbsp;  | 3   | 81   | 0.034
+3       | 1.5 | 231  | 0.021
+&nbsp;  | 2   | 308  | 0.017
+&nbsp;  | 2.5 | 385  | 0.014
+&nbsp;  | 3   | 462  | 0.013
 
 ```{r, echo = FALSE}
 ppd.df <- data.frame(hours = t.new, m1 = (x.modes.m1 - 1), 
                      m1p = round(modes.m1, 3), m2 = (x.modes.m2 - 1), m2p = round(modes.m2, 3), m3 = (x.modes.m3 - 1), m3p = round(modes.m3, 3))
 names(ppd.df) <- c("Movie Duration (hours)", "Model 1: Body Count", "Model 1: Pr(y)", "Model 2: Body Count", "Model 2: Pr(y)", "Model 3: Body Count", "Model 3: Pr(y)")
 # knitr::kable(ppd.df, align = "l")
-```
-
-
-# IV. Model Checking  
-
-
-### Sensitivity to Prior Distribution
-
-In this section we consider the effects of the choice of prior distribution on posterior inference, particularly the effects of a noninformative prior instead of the gamma conjugate prior. The Jeffreys prior for $\theta$ follows from the Fisher information, which results in an improper noninformative prior: $p(\theta) \propto \sqrt{\frac{1}{\theta}}$; however, this does not prevent us from finding a posterior distribution for $\theta$ **[WHY???]**. The resulting posterior distribution for $\theta$ is Gamma$\left(0.5 + \sum\limits_{i=1}^n y_i, \sum\limits_{i=1}^n t_i\right)$. Below are the plots of the posterior distributions of $\theta$ as a result of using a conjugate prior and a non-informative prior. In all three models the differences are neglible, so a choosing a non-informative prior instead of a conjugate prior would have little impact on posterior inference.
-
-
-```{r, echo = FALSE}
-par(mfrow = c(1,3))
-curve(dgamma(x, shape = y.sum.m1 + 0.5, rate = t.sum.m1), 
-      from = 0, to = 10, 
-      lty = 1, col = "violetred", ann = FALSE, bty = "n", xlim = c(0,10), ylim = c(0,1))
-curve(dgamma(x, shape = alpha.post.m1, rate = beta.post.m1), 
-      from = 0, to = 10, 
-      lty = "36", lwd = 2, col = "slateblue", add = TRUE)
-#legend("topright", legend = c("Posterior (Conjugate Prior)", "Posterior (Noninformative Prior)"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
-title(main = "Model 1", xlab = expression(theta), ylab = "Density")
-
-
-
-curve(dgamma(x, shape = y.sum.m2 + 0.5, rate = t.sum.m2), 
-      from = 10, to = 50, 
-      lty = 1, col = "violetred", ann = FALSE, bty = "n", xlim = c(10,50), ylim = c(0,0.3))
-curve(dgamma(x, shape = alpha.post.m2, rate = beta.post.m2), 
-      from = 10, to = 50, 
-      lty = "36", lwd = 2, col = "slateblue", add = TRUE)
-legend("top", legend = c("Conjugate", "Noninformative"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
-title(main = "Model 2", xlab = expression(theta), ylab = "Density")
-
-
-curve(dgamma(x, shape = y.sum.m3 + 0.5, rate = t.sum.m3), 
-      from = 120, to = 200, 
-      lty = 1, col = "violetred", ann = FALSE, bty = "n", xlim = c(120,200), ylim = c(0,0.08))
-curve(dgamma(x, shape = alpha.post.m3, rate = beta.post.m3), 
-      from = 120, to = 200, 
-      lty = "36", lwd = 2, col = "slateblue", add = TRUE)
-#legend("topright", legend = c("Posterior (Conjugate Prior)", "Posterior (Noninformative Prior)"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
-title(main = "Model 3", xlab = expression(theta), ylab = "Density")
-par(mfrow = c(1,1))
 ```
 
 ### Posterior Predictive Checking  
@@ -500,7 +402,6 @@ names(ppc.df) <- c("Test Quantity", "P-Value", "Calculation Method")
 knitr::kable(ppc.df, align = "l")
 ```
 
-
 ```{r, echo = FALSE}
 par(mfrow = c(1,2))
 h <- hist(sim.min, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,25), ylim = c(0,0.20))
@@ -564,35 +465,75 @@ title(main = "Var/Mean Ratio", cex.main = 1, line = 1)
 title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
 ```
 
-```{r, echo = FALSE}
-## Simulation set-up
-m <- 500000
-n.obs.m2 <- length(qt.m2$body.count)
-theta.sim.m2 <- rgamma(m, shape = alpha.post.m2, rate = beta.post.m2)
-t.sim.m2 <- runif(m, min = min(qt.m2$hours), max = max(qt.m2$hours))
-yrep.m2 <- round(mapply(rpois, n = n.obs, lambda = theta.sim.m2*t.sim.m2))
-
-obs.mean.m2 <- mean(qt.m2$body.count)
-sim.mean.m2 <- apply(yrep.m2, 2, mean)
-pval.mean.m2 <- length(sim.mean.m2[sim.mean.m2 <= obs.mean.m2]) / m
-
-h <- hist(yrep.m2, breaks = 100, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,140), ylim = c(0,0.04))
-lines(rep(obs.mean.m2, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
-mtext(paste("p-value:", round(pval.mean.m2, 2)), side = 3, cex = 0.75)
-text(obs.mean.m2, max(h$density), round(obs.mean.m2, 2), pos = 3)
-title(main = "Model 2: Mean", line = 1)
-title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
-```
-
-### Alternative Models
+### Conclusions
 
  * Hierachichal model
  * Negative binomial for model 1 in order to handle overdispersion
  * Poisson regression
 
+\pagebreak
+
 # V. Appendix 
 
-### Model Derivations
+## Model Derivations
+
+Gamma conjugate prior: 
+
+In order to estimate the parameters of the conjugate prior distribution for each model, we acquired a dataset compiled by Randal Olson from the site http://www.moviebodycounts.com/. See references for links to original dataset. The original data is filtered to make it more relevant to our analysis. First all movies with Quentin Tarantino as director were removed. This excluded one movie not in the dataset described above where Tarantino was a director but not a writer: Sin City. Next, we restricted the range of years to exclude any movies released prior to 1989. This was done to avoid influence from movies in a time period with dramatically different social views about movie violence. We assumed movies released in the three years prior to the release of his first movie (*Reservoir Dogs*, 1992) would also be similar enough in nature. All of the Tarantino movies have an MPAA rating of R with the exception of *Death Proof*, which was unrated. As a result, we included movies with ratings R or Unrated. The filter conditions discussed so far apply to all three models, but the filtering based on genre is specific to each model. For both model 1 and model 2, the unique set of genres was determined for the data points in each model. For model 1, the set consists of crime, drama, thriller, action, western, mystery; for model 2, action, thriller, drama, western. Using these sets, a movie from the historical sample was included if one of two conditions was met: (1) all its genres matched the unique genre set, or (2) at least 3 of its genres matched the unique genre set. The number of genres listed for a movie can vary quite a bit, so these conditions help prevent the filtering from excluding too many movies. For Model 3, the genre filter condition is simply a check to see if the movie has the genre war. This condition is far less restrictive than those for models 1 and 2, but is necessary due to the small number of war movies with recorded body counts. We suspect this is due to the difficulty and tedium of recording body counts for war movies. One final note: the original historical movie dataset does not contain any movies with zero deaths. For our purposed, this ensures the kill rate per hour is greater than zero, which is appropriate for the support of the Gamma distribution.  
+
+\begin{align}
+\text{Mode}(\theta) & = \frac{\alpha - 1}{\beta} \\
+0.999 & = \int\limits_0^{u} \frac{\beta^{\alpha}}{\Gamma(\alpha)}\theta^{\alpha -1}\text{e}^{-\beta}{\theta}
+\end{align}
+
+```{r, echo = FALSE, fig.width=7.5, fig.height=5}
+par(mfrow = c(1,3))#, cex.axis = 0.75, cex.main = 0.75, cex.lab = 0.75)
+plot(1,0.01, ann = FALSE, axes = FALSE,
+     xlim = c(0, 160), ylim = c(0, 0.05), 
+     bty = "n", type = "n")
+hist(dc.filt.m1$Kill_Rate, breaks = 30, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
+lines(d1, col = "violetred", lwd = 1.5)
+axis(1, at = seq.int(0, 160, 40))
+axis(2, at = seq.int(0, 0.05, 0.01))
+
+## Plot theoretical gamma distribution
+curve(dgamma(x, shape = alpha.m1, rate = beta.m1), from = 0, to = 200, add = TRUE, lty = 2, col = "slateblue")
+#legend("top", legend = paste(c("Mean =", "Mode =", "Variance ="), c(g.mean, g.mode, g.var)), bty = "n")
+legend("top", legend = c(paste("Gamma(", alpha.m1, ", ", beta.m1,")", sep = ""), "KDE"), 
+       col = c("slateblue", "violetred"), lty = c(2,1), bty = "n", cex = 0.75)
+title(main = "Model 1", xlab = expression(theta), ylab = "Density")
+
+plot(1,0.01, ann = FALSE, axes = FALSE,
+     xlim = c(0, 160), ylim = c(0, 0.05), 
+     bty = "n", type = "n")
+hist(dc.filt.m2$Kill_Rate, breaks = 30, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
+lines(d2, col = "violetred", lwd = 1.5)
+axis(1, at = seq.int(0, 160, 40))
+axis(2, at = seq.int(0, 0.05, 0.01))
+
+## Plot theoretical gamma distribution
+curve(dgamma(x, shape = alpha.m2, rate = beta.m2), from = 0, to = 160, add = TRUE, lty = 2, col = "slateblue")
+#legend("top", legend = paste(c("Mean =", "Mode =", "Variance ="), c(g.mean, g.mode, g.var)), bty = "n")
+legend("top", legend = c(paste("Gamma(", alpha.m2, ", ", beta.m2,")", sep = ""), "KDE"), 
+       col = c("slateblue", "violetred"), lty = c(2,1), bty = "n", cex = 0.75)
+title(main = "Model 2", xlab = expression(theta), ylab = "Density")
+
+plot(1,0.01, ann = FALSE, axes = FALSE,
+     xlim = c(0, 400), ylim = c(0, 0.02), 
+     bty = "n", type = "n")
+hist(dc.filt.m3$Kill_Rate, freq = FALSE, axes = FALSE, ann = FALSE, add = TRUE, border = "grey75", col = "grey95")
+lines(d3, col = "violetred", lwd = 1.5)
+axis(1, at = seq.int(0, 400, 100))
+axis(2, at = seq.int(0, 0.02, 0.005))
+
+## Plot theoretical gamma distribution
+curve(dgamma(x, shape = alpha.m3, rate = beta.m3), from = 0, to = 400, add = TRUE, lty = 2, col = "slateblue")
+#legend("top", legend = paste(c("Mean =", "Mode =", "Variance ="), c(g.mean, g.mode, g.var)), bty = "n")
+legend("top", legend = c(paste("Gamma(", alpha.m3, ", ", beta.m3,")", sep = ""), "KDE"), 
+       col = c("slateblue", "violetred"), lty = c(2,1), bty = "n", cex = 0.75)
+title(main = "Model 3", xlab = expression(theta), ylab = "Density")
+par(mfrow = c(1,1))
+```
 
 Negative binomial posterior preditive distribution: [ADD STEPS!!!]
 \begin{align*}
@@ -610,7 +551,9 @@ I_n(\theta) & = \text{E}\left\{ \left(\frac{\partial}{\partial \theta} \log p(y~
 \implies p(\theta) & \propto \sqrt{\frac{1}{\theta}}
 \end{align*} 
 
-### Code: Posterior Predictive Checking
+## Model Checking
+
+##### Code: Posterior Predictive Checking
 ```{r, eval = FALSE}
 ## Model 1
 ## Simulation set=up
@@ -656,24 +599,50 @@ pval.var <- length(sim.var[sim.var <= obs.var]) / m
 obs.ratio <- obs.var / obs.mean
 sim.ratio <- sim.var / sim.mean
 pval.ratio <- length(sim.ratio[sim.ratio <= obs.ratio]) / m
-
-
-## Model 2
-## Simulation set-up
-m <- 500000
-n.obs.m2 <- length(qt.m2$body.count)
-theta.sim.m2 <- rgamma(m, shape = alpha.post.m2, rate = beta.post.m2)
-t.sim.m2 <- runif(m, min = min(qt.m2$hours), max = max(qt.m2$hours))
-yrep.m2 <- round(mapply(rpois, n = n.obs, lambda = theta.sim.m2*t.sim.m2))
-## Mean
-obs.mean.m2 <- mean(qt.m2$body.count)
-sim.mean.m2 <- apply(yrep.m2, 2, mean)
-pval.mean.m2 <- length(sim.mean.m2[sim.mean.m2 <= obs.mean.m2]) / m
 ```
 
+##### Sensitivity to Prior Distribution
+
+In this section we consider the effects of the choice of prior distribution on posterior inference, particularly the effects of a noninformative prior instead of the gamma conjugate prior. The Jeffreys prior for $\theta$ follows from the Fisher information, which results in an improper noninformative prior: $p(\theta) \propto \sqrt{\frac{1}{\theta}}$; however, this does not prevent us from finding a posterior distribution for $\theta$ **[WHY???]**. The resulting posterior distribution for $\theta$ is Gamma$\left(0.5 + \sum\limits_{i=1}^n y_i, \sum\limits_{i=1}^n t_i\right)$. Below are the plots of the posterior distributions of $\theta$ as a result of using a conjugate prior and a non-informative prior. In all three models the differences are neglible, so a choosing a non-informative prior instead of a conjugate prior would have little impact on posterior inference.
+
+```{r, echo = FALSE}
+par(mfrow = c(1,3))
+curve(dgamma(x, shape = y.sum.m1 + 0.5, rate = t.sum.m1), 
+      from = 0, to = 10, 
+      lty = 1, col = "violetred", ann = FALSE, bty = "n", xlim = c(0,10), ylim = c(0,1))
+curve(dgamma(x, shape = alpha.post.m1, rate = beta.post.m1), 
+      from = 0, to = 10, 
+      lty = "36", lwd = 2, col = "slateblue", add = TRUE)
+#legend("topright", legend = c("Posterior (Conjugate Prior)", "Posterior (Noninformative Prior)"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
+title(main = "Model 1", xlab = expression(theta), ylab = "Density")
+
+
+curve(dgamma(x, shape = y.sum.m2 + 0.5, rate = t.sum.m2), 
+      from = 10, to = 50, 
+      lty = 1, col = "violetred", ann = FALSE, bty = "n", xlim = c(10,50), ylim = c(0,0.3))
+curve(dgamma(x, shape = alpha.post.m2, rate = beta.post.m2), 
+      from = 10, to = 50, 
+      lty = "36", lwd = 2, col = "slateblue", add = TRUE)
+legend("top", legend = c("Conjugate", "Noninformative"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
+title(main = "Model 2", xlab = expression(theta), ylab = "Density")
+
+
+curve(dgamma(x, shape = y.sum.m3 + 0.5, rate = t.sum.m3), 
+      from = 120, to = 200, 
+      lty = 1, col = "violetred", ann = FALSE, bty = "n", xlim = c(120,200), ylim = c(0,0.08))
+curve(dgamma(x, shape = alpha.post.m3, rate = beta.post.m3), 
+      from = 120, to = 200, 
+      lty = "36", lwd = 2, col = "slateblue", add = TRUE)
+#legend("topright", legend = c("Posterior (Conjugate Prior)", "Posterior (Noninformative Prior)"), col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
+title(main = "Model 3", xlab = expression(theta), ylab = "Density")
+par(mfrow = c(1,1))
+```
+
+\pagebreak
 
 # VI. References
 
+Dr. Lee R code
 
 IMDB. http://www.imdb.com/
 
