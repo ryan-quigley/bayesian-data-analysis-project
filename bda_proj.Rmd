@@ -11,7 +11,7 @@ fontsize: 12pt
 
 # I. Executive Summary  
 
-Quentin Tarantino’s moves are famous (or notorious) for violent death and massacre. In this project, we use Bayesian method to analyze and predict the body count in Quentin Tarantino’s next movie. We construct our prior belief on killed rate per hour based on 2xx movies with similar filming style, and update our belief with actual body count in all of his movies. In fact, we divide our study into 3 sub-models because we believe different movie genres should should have different death rates. At the end, our results show that for the same movie duration, if Quentin Tarantino’s next movie is about a war, the body count could be as many as 38 times a non-war related movie.
+Quentin Tarantino’s moves are famous (or notorious) for violent death and massacre. In this project, we use Bayesian method to analyze and predict the body count in Quentin Tarantino’s next movie.  Using a body counts database of about 200 movies, we explored the possible factors, such a genre, rating, and year of publication, that could be associated with body count of a movie. Among all the factors, the association of genre with body count is significant.  War movies have much more body counts than other movies. Thus, we decided to build different models for different genres, one for war movies, and two for other movies, such as drama, crime, thriller, western, and action. We used the distribution of the body counts of other movies, except Tarantino’s to specify the parameters of the conjugate prior of different models. We picked Poisson distribution to model the sample data. Detailed justification of using Poisson model is provided later. Our results show that for the same movie duration, if Quentin Tarantino’s next movie is about a war, the body count could be as many as 38 times a non-war related movie.  
 
 ```{r global_options, include=FALSE}
 knitr::opts_chunk$set(fig.align = "center")
@@ -42,6 +42,8 @@ qt <- qt[, c(1,6,5,3,2,4,7,8,9,10)]
 
 # II. Data Summary  
 
+##### Taratino Filmography (as writer and director)  
+
 Metadata extracted from IMDB (IMDB, 2016); body count extracted from Vanity Fair infographic (Down for the count, 2013)
 
 ```{r, echo = FALSE}
@@ -57,61 +59,9 @@ qt.data.sum <- rbind(qt.data.sum[1:5, ], c("", paste(kbv2.gsplit[3:4], collapse 
 knitr::kable(qt.data.sum, align = c("l", "l", "l", "l", "r", "r", "r"), row.names = FALSE, digits = 2)
 ```
 
-# III. Models
-
-From the article where the infographic was originally published:  
-
-> "A few numbers are approximated due to the impossibility of counting precisely how many ninjas are decapitated in **Kill Bill Vol. 1**, how many Nazis are in the theater when it gets set afire in **Inglorious Basterds**, and how many people fall in the never-ending shoot-out scene at the end of **Django Unchained**."  
-> - Vanity Fair  
-
-The body count numbers in these three movies are unsually large and require approximation for one main reason: each contains a single scene of unimaginable (to most people except Tarantino) violence that dramatically increasese the death toll. In light of this information, we find it impossible to judge exchangeability for the entire nine movie filmography of Tarantino as both writer and director. We belive Gelman et. al would support our judgement given their published opinion on the matter,  
-
-> "In practice, ignorance implies exchangeability. Generally, the less we know about a problem, the more confidently we can make claims of exchangeability. (This is not, we hasten to add, a good reason to limit our knowledge of a problem before embarking on statistical analysis!)"  
-> - Gelman et. al BDA
-
-
-The following table summarizes the model components, and provides two summary statistics for $\theta$ (Note: $\Gamma(\alpha, \beta) = \text{Gamma}(\alpha, \beta)$).  
-
-Model | Prior                 |  Likelihood        | Posterior                | Posterior Mode | 99% HPD Inteval
-------|-----------------------|--------------------|--------------------------|-------------|-------------------------
- 1 | $\Gamma(1.46, 0.053)$  | $\propto \theta^{59}e^{-13.73\theta}$ | $\Gamma(60.46, 13.79)$  | 4.31   | [3.03, 5.92]
- 2 | $\Gamma(2.13, 0.064)$  | $\propto \theta^{126}e^{-4.6\theta}$  | $\Gamma(128.13, 4.66)$  | 25.26  | [21.49, 33.97]
- 3 | $\Gamma(2.015, 0.023)$ | $\propto \theta^{396}e^{-2.55\theta}$ | $\Gamma(398.015, 2.57)$ | 154. 3 | [135.20, 175.12]
-
-
-### Sampling Distribution: Poisson with rate and exposure
-
-According to Gelman et. al. (pg. 45), this model is NOT exchangeable in the $y_i$'s but is exchangeable in the pairs $(t,y)_i$
-
-##### Assumptions and Justification
-
-Let $y(t)$ denote the number of events that have occurred during a time interval $[0, t]$  
-
-* P1: $y(0) = 0$
-* P2: For all $n \geq 0$, and for any two time intervals, $I_1$ and $I_2$, of equal length, Pr($n$ events in $I_1$) = Pr($n$ events in $I_2$)
-* P3: Events that occur in nonoverlapping time intervals are mutually independent (want to relax this and replace with exchangeability)
-* P4: $\lim\limits_{h \to 0}\frac{\text{Pr}(y(h) > 1)}{h} = 0$
-* P5: $0 < \text{Pr}\{y(t)=0\} < 1, ~ \forall ~  t > 0$
-
-Under these conditions, there exists a positive number $\theta$ that produces the density below where $\theta$ = the true underlying kill rate per hour in Quentin Taratino movies:  
-$$p(y ~|~ \theta) = \frac{1}{y!}(\theta t)^{y}e^{-(\theta t)} \cdot {1}_{\{0,1,2,...\}}(y)$$
-Given the plot structure of movies we would not expect the kill rate to be constant within the movie; however, with the information available we cannot determine whether or not this assumption is violated within each movie.  
-
-### Likelihood
-
-A necessary and sufficient condition to get product of identical distributions is  
-$$p(y_1,...y_n ~|~ s_n) = \frac{s_n!}{y_1!,...,y_n!} \prod\limits_{i=1}^n \left(\frac{1}{n}\right)^{y_i}$$
-For every $n$, where $s_n = y_1 + ... + y_n$. This condition is not reasonably justified if we group all the data together; however, once grouped into three models, the condition seems reasonable within each model. Assuming this condition holds, the likelihood is:  
-$$p(y ~|~ \theta) \propto \theta^{\left(\sum\limits_{i=1}^n y_i\right)} \exp\left( -\theta \sum\limits_{i=1}^n t_i \right)$$
-
-### Conjugate Prior: Gamma
-
-Since the conjugate prior distribution for the Poisson sampling distribution is the Gamma distribution, the prior distribution of $\theta$ will be of the form:  
-$$p(\theta) \propto \theta^{\alpha - 1}e^{-\beta\cdot\theta}$$
-
 ##### Historical Movie Database Sample  
 
-The following table summarizes the kill rate per hour of the subset of the historical data used for each model:
+In order to estimate the parameters of the conjugate prior distribution for each model in the next section, we acquired a dataset compiled by Randal Olson from the site http://www.moviebodycounts.com/. See references for links to original dataset. The original data is filtered to make it more relevant to our analysis. The following table summarizes the kill rate per hour of the subset of the historical data used for each model:
 
 ```{r, echo = FALSE}
 qt.all <- qt
@@ -148,6 +98,57 @@ names(genre.sum) <- c("Model", "N", "Min.", "1st Qu.", "Median", "Mean", "3rd Qu
 knitr::kable(genre.sum, align = "l")
 ```
 
+# III. Models
+
+From the article where the infographic was originally published:  
+
+> "A few numbers are approximated due to the impossibility of counting precisely how many ninjas are decapitated in **Kill Bill Vol. 1**, how many Nazis are in the theater when it gets set afire in **Inglorious Basterds**, and how many people fall in the never-ending shoot-out scene at the end of **Django Unchained**."  
+> - Vanity Fair  
+
+The body count numbers in these three movies are unsually large and require approximation for one main reason: each contains a single scene of unimaginable (to most people except Tarantino) violence that dramatically increasese the death toll. In light of this information, we find it impossible to judge exchangeability for the entire nine movie filmography of Tarantino as both writer and director. We belive Gelman et. al would support our judgement given their published opinion on the matter,  
+
+> "In practice, ignorance implies exchangeability. Generally, the less we know about a problem, the more confidently we can make claims of exchangeability. (This is not, we hasten to add, a good reason to limit our knowledge of a problem before embarking on statistical analysis!)"  
+> - Gelman et. al BDA
+
+
+The following table summarizes the model components, and provides two posterior summary statistics for $\theta$ (Note: $\Gamma(\alpha, \beta) = \text{Gamma}(\alpha, \beta)$).  
+
+Model | Prior                 |  Likelihood        | Posterior                | Posterior Mode | 99% HPD Inteval
+------|-----------------------|--------------------|--------------------------|-------------|-------------------------
+ 1 | $\Gamma(1.46, 0.053)$  | $\propto \theta^{59}e^{-13.73\theta}$ | $\Gamma(60.46, 13.79)$  | 4.31   | [3.03, 5.92]
+ 2 | $\Gamma(2.13, 0.064)$  | $\propto \theta^{126}e^{-4.6\theta}$  | $\Gamma(128.13, 4.66)$  | 25.26  | [21.49, 33.97]
+ 3 | $\Gamma(2.015, 0.023)$ | $\propto \theta^{396}e^{-2.55\theta}$ | $\Gamma(398.015, 2.57)$ | 154. 3 | [135.20, 175.12]
+
+## Sampling Distribution: Poisson with rate and exposure
+
+According to Gelman et. al. (pg. 45), this model is NOT exchangeable in the $y_i$'s but is exchangeable in the pairs $(t,y)_i$
+
+##### Assumptions and Justification
+
+Let $y(t)$ denote the number of events that have occurred during a time interval $[0, t]$  
+
+* P1: $y(0) = 0$
+* P2: For all $n \geq 0$, and for any two time intervals, $I_1$ and $I_2$, of equal length, Pr($n$ events in $I_1$) = Pr($n$ events in $I_2$)
+* P3: Events that occur in nonoverlapping time intervals are mutually independent (want to relax this and replace with exchangeability)
+* P4: $\lim\limits_{h \to 0}\frac{\text{Pr}(y(h) > 1)}{h} = 0$
+* P5: $0 < \text{Pr}\{y(t)=0\} < 1, ~ \forall ~  t > 0$
+
+Under these conditions, there exists a positive number $\theta$ that produces the density below where $\theta$ = the true underlying kill rate per hour in Quentin Taratino movies:  
+$$p(y ~|~ \theta) = \frac{1}{y!}(\theta t)^{y}e^{-(\theta t)} \cdot {1}_{\{0,1,2,...\}}(y)$$
+Given the plot structure of movies we would not expect the kill rate to be constant within the movie; however, with the information available we cannot determine whether or not this assumption is violated within each movie.  
+
+## Likelihood
+
+A necessary and sufficient condition to get product of identical distributions is  
+$$p(y_1,...y_n ~|~ s_n) = \frac{s_n!}{y_1!,...,y_n!} \prod\limits_{i=1}^n \left(\frac{1}{n}\right)^{y_i}$$
+For every $n$, where $s_n = y_1 + ... + y_n$. This condition is not reasonably justified if we group all the data together; however, once grouped into three models, the condition seems reasonable within each model. Assuming this condition holds, the likelihood is:  
+$$p(y ~|~ \theta) \propto \theta^{\left(\sum\limits_{i=1}^n y_i\right)} \exp\left( -\theta \sum\limits_{i=1}^n t_i \right)$$
+
+## Conjugate Prior: Gamma
+
+Since the conjugate prior distribution for the Poisson sampling distribution is the Gamma distribution, the prior distribution of $\theta$ will be of the form:  
+$$p(\theta) \propto \theta^{\alpha - 1}e^{-\beta\cdot\theta}$$
+
 The parameters of the conjugate prior distributions for each model were calculated by solving analytically a pair of equations for $\alpha$ and $\beta$ (Lee, 2016). The equations were determined by (1) setting the mode formula for the gamma distribution equal to the mode of the kernel density estimate, and by (2) observing the interval that approximately 99.9% of the historical data subset was contained in. For modes of the kernel density estimates are 8.61, 17.85, and 43.83, respectively. The intervals that appeared to contain 99.9% of the historical data were (0,150), (0,150), and (0,400), respectively. See section *[TODO]* of the appendix for the mathematical equations and plots of the kernel density estimates and theoretical gamma distributions.
 
 ```{r, echo = FALSE}
@@ -172,7 +173,7 @@ d3 <- density(dc.filt.m3$Kill_Rate, kernel = "epanechnikov", bw = h, from = 0, t
 
 
 
-### Posterior Distribution  
+## Posterior: Gamma
 
 In general, the posterior distribution is Gamma$\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$ (Gelman et. al, pg. 45)
 
@@ -224,9 +225,24 @@ names(hpd.df) <- c("Model", "Lower Bound", "Upper Bound")
 # knitr::kable(hpd.df, align = "l")
 ```
 
-### Posterior Predictive Distribution
+## Posterior Predictive Distribution
 
-The posterior predictive distribution for a single additional observation is a negative binomial distribution of the form $\text{NB}\left(\alpha + \sum\limits_{i=1}^n y_i ~,~ \frac{1}{\tilde{t}}\left[\beta + \sum\limits_{i=1}^n t_i \right]\right)$ (Gelman et.al., pg. 44-45). See appendix for derivation.
+The posterior predictive distribution for a single additional observation is a negative binomial distribution of the form $\text{NB}\left(\alpha + \sum\limits_{i=1}^n y_i ~,~ \frac{1}{\tilde{t}}\left[\beta + \sum\limits_{i=1}^n t_i \right]\right)$ (Gelman et.al., pg. 44-45). See section *[TODO]* of appendix for derivation. For a sample of potential movie durations, the most likely body count values broken down by model in Quentin Taratino's next movie are summarized in the following table.  
+
+Model | Movie Duration (hours) | Body Count | $\text{Pr}(\tilde{y} ~\vert~ y)$
+------|--------|---------|----------
+1       | 1.5 | 6    | 0.15
+&nbsp;  | 2   | 8    | 0.127
+&nbsp;  | 2.5 | 10   | 0.112
+&nbsp;  | 3   | 12   | 0.1
+2       | 1.5 | 40   | 0.054
+&nbsp;  | 2   | 54   | 0.045
+&nbsp;  | 2.5 | 68   | 0.039
+&nbsp;  | 3   | 81   | 0.034
+3       | 1.5 | 231  | 0.021
+&nbsp;  | 2   | 308  | 0.017
+&nbsp;  | 2.5 | 385  | 0.014
+&nbsp;  | 3   | 462  | 0.013
 
 ```{r, echo = FALSE}
 def.par <- par(no.readonly = TRUE)
@@ -303,22 +319,6 @@ par(def.par)
 par(mar = margins)
 ```
 
-Thus, the most likely values for the body count in Quentin Taratino's next movie are:  
-
-Model | Movie Duration (hours) | Body Count | $\text{Pr}(\tilde{y} ~\vert~ y)$
-------|--------|---------|----------
-1       | 1.5 | 6    | 0.15
-&nbsp;  | 2   | 8    | 0.127
-&nbsp;  | 2.5 | 10   | 0.112
-&nbsp;  | 3   | 12   | 0.1
-2       | 1.5 | 40   | 0.054
-&nbsp;  | 2   | 54   | 0.045
-&nbsp;  | 2.5 | 68   | 0.039
-&nbsp;  | 3   | 81   | 0.034
-3       | 1.5 | 231  | 0.021
-&nbsp;  | 2   | 308  | 0.017
-&nbsp;  | 2.5 | 385  | 0.014
-&nbsp;  | 3   | 462  | 0.013
 
 ```{r, echo = FALSE}
 ppd.df <- data.frame(hours = t.new, m1 = (x.modes.m1 - 1), 
@@ -328,25 +328,6 @@ names(ppd.df) <- c("Movie Duration (hours)", "Model 1: Body Count", "Model 1: Pr
 ```
 
 ### Posterior Predictive Checking  
-
-Because our sampling distribution involves rate and exposure, we must appropriately account for the exposure, $t$, when approximating the distribution of $T(y^{rep}, \theta)$ using simulation. The simulation will be performed as follows:  
-
-1. Draw $\theta^{(i)}$ from Gamma$\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$
-2. Multiply $\theta^{(i)}$ by $t^{*}$
-3. For each $(\theta^{(i)} \cdot t^{*})$, simulate a draw $y^{rep(i)}(t^{*})$ from Poisson$(\theta^{(i)} \cdot t^{*})$
-4. Calculate $T(y^{rep(i)}(t^{*}), \theta^{(i)})$ for $i$ = 1,..., 500000.
-
-For model 1 mostly, this presents a problem when deciding what value of $t^{*}$ to choose for each simulation. To address this issue, we note that there does not appear to be a strong relationship between body count and movie duration. This can be seen in the plot below, and is supported by a low correlation value of 0.21. As a result, we draw $t^{*}$ randomly from $U(min\{t_1,...t_n\}, max\{t_1,...t_n\})$ in step 2 of the simulation procedure. In the case of model 1, this is the interval [1.65, 2.78]; for model 2, this is the interval [1.85, 2.75]. For model 3, we simply take $t^{*}$ = 2.55 since the model only has a single data point.
-
-```{r, echo = FALSE}
-plot(qt$hours, qt$body.count, ann = FALSE, axes = FALSE, xlim = c(1.5, 3), ylim = c(0,20), col = "violetred", pch = 20)
-#box(col = "gray50", lty = 1)
-axis(1, at = seq.int(1.5, 3, 0.5), col = "gray50")
-axis(2, at = seq.int(0,20,5), col = "gray50")
-mtext(paste("Corr(Hours, Body Count) =", round(cor(qt.m1$hours, qt.m1$body.count), 2)), side = 3, cex = 0.75)
-title(main = "Model 1", line = 1, cex.main = 1)
-title(xlab = "Movie Duration (hours)", ylab = "Body Count")
-```
 
 The following table summarizes the posterior predictive p-values from the seven test quantities calculated for model 1. For each, 500,000 replications were calculated. Column 3 indicates whether the p-value was calculated using the proportion of simulated values of $T(y^{rep}(t^{*}), \theta)$ greater than or equal to the observed value $T(y, \theta)$ or the proportion of simulated values less than or equal to the observed value. See the appendix for more details.  
 
@@ -367,15 +348,6 @@ obs.max <- max(qt.m1$body.count)    # observed maximum
 sim.max <- apply(yrep, 2, max)      # simulated maximum
 pval.max <- length(sim.max[sim.max <= obs.max]) / m
 
-obs.range <- diff(range(qt.m1$body.count))
-sim.itmd <- apply(yrep, 2, range)
-sim.range <- apply(sim.itmd, 2, diff)
-pval.range <- length(sim.range[sim.range <= obs.range]) / m
-
-obs.IQRange <- IQR(qt.m1$body.count)
-sim.IQRange <- apply(yrep, 2, IQR)
-pval.IQR <- length(sim.IQRange[sim.IQRange <= obs.IQRange]) / m
-
 obs.mean <- mean(qt.m1$body.count)    # observed mean
 sim.mean <- apply(yrep, 2, mean)   # simulated mean
 pval.mean <- length(sim.mean[sim.mean >= obs.mean]) / m
@@ -387,89 +359,48 @@ pval.var <- length(sim.var[sim.var <= obs.var]) / m
 obs.ratio <- obs.var / obs.mean
 sim.ratio <- sim.var / sim.mean
 pval.ratio <- length(sim.ratio[sim.ratio <= obs.ratio]) / m
-
-ppc.df <- data.frame(c("Minimum", "Maximum", "Range", "Interquartile Range", "Mean", "Variance", "Var/Mean Ratio"),
-                     p = round(c(pval.min, pval.max, pval.range, pval.IQR, pval.mean, pval.var, pval.ratio), 2), 
-                     m = c(">=", 
-                           "<=", 
-                           "<=", 
-                           "<=", 
-                           ">=", 
-                           "<=", 
-                           "<="), 
-                     row.names = NULL)
-names(ppc.df) <- c("Test Quantity", "P-Value", "Calculation Method")
-knitr::kable(ppc.df, align = "l")
 ```
 
 ```{r, echo = FALSE}
-par(mfrow = c(1,2))
-h <- hist(sim.min, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,25), ylim = c(0,0.20))
-lines(rep(obs.min, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
-mtext(paste("p-value:", round(pval.min, 2)), side = 3, cex = 0.75)
-text(obs.min, max(h$density),  obs.min, pos = 3, offset = 0.5)
-title(main = "Minimum", cex.main = 1, line = 1)
-title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
+def.par <- par(no.readonly = TRUE)
+margins <- par("mar")
+layout(matrix(c(1,1,2,3), 2, 2, byrow = TRUE))
+par(mar = c(3.1,3.1,3.1,2.1))
 
-h <- hist(sim.max, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,40), ylim = c(0, 0.16))
-lines(rep(obs.max, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
-mtext(paste("p-value =", round(pval.max, 2)), side = 3, cex = 0.75)
-text(obs.max, max(h$density), obs.max, pos = 3)
-title(main = "Maximum", cex.main = 1, line = 1)
-title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
-par(mfrow = c(1,1))
-```
-
-```{r, echo = FALSE}
-par(mfrow = c(1,2))
-h <- hist(sim.range, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,30), ylim = c(0,0.2))
-lines(rep(obs.range, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
-mtext(paste("p-value:", round(pval.range, 2)), side = 3, cex = 0.75)
-text(obs.range, max(h$density), obs.range, pos = 3)
-title(main = "Full", cex.main = 1, line = 1)
-title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
-
-h <- hist(sim.IQRange, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,20), ylim = c(0,0.4))
-lines(rep(obs.IQRange, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
-mtext(paste("p-value:", round(pval.IQR, 2)), side = 3, cex = 0.75)
-text(obs.IQRange, max(h$density), obs.IQRange, pos = 3)
-title(main = "IQR", cex.main = 1, line = 1)
-title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
-par(mfrow = c(1,1))
-```
-
-```{r, echo = FALSE}
-par(mfrow = c(1,2))
-h <- hist(sim.mean, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,25), ylim = c(0,0.2))
-lines(rep(obs.mean, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
-mtext(paste("p-value:", round(pval.mean, 2)), side = 3, cex = 0.75)
-text(obs.mean, max(h$density), round(obs.mean, 2), pos = 3)
-title(main = "Mean", cex.main = 1, line = 1)
-title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
-
-h <- hist(sim.var, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,60), ylim = c(0,0.1))
-lines(rep(obs.var, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
-mtext(paste("p-value:", round(pval.var, 2)), side = 3, cex = 0.75)
-text(obs.var, max(h$density), round(obs.var, 2), pos = 3)
-title(main = "Variance", cex.main = 1, line = 1)
-title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
-par(mfrow = c(1,1))
-```
-
-```{r, echo = FALSE}
+## Var/Mean Ratio
 h <- hist(sim.ratio, breaks = 100, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,6), ylim = c(0,1))
 lines(rep(obs.ratio, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
 mtext(paste("p-value:", round(pval.ratio, 2)), side = 3, cex = 0.75)
 text(obs.ratio, max(h$density), round(obs.ratio, 2), pos = 3)
 title(main = "Var/Mean Ratio", cex.main = 1, line = 1)
-title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
+title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density", line = 2)
+
+## Minimum
+h <- hist(sim.min, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,25), ylim = c(0,0.20))
+lines(rep(obs.min, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
+mtext(paste("p-value:", round(pval.min, 2)), side = 3, cex = 0.75)
+text(obs.min, max(h$density),  obs.min, pos = 3, offset = 0.5)
+title(main = "Minimum", cex.main = 1, line = 1)
+title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density", line = 2)
+
+## Maximum
+h <- hist(sim.max, right = FALSE, freq = FALSE, ann = FALSE, col = "#1f78b4", border = "#a6cee3", xlim = c(0,40), ylim = c(0, 0.16))
+lines(rep(obs.max, 2), c(0, max(h$density)), col = "#e31a1c", lwd = 1.5)
+mtext(paste("p-value =", round(pval.max, 2)), side = 3, cex = 0.75)
+text(obs.max, max(h$density), obs.max, pos = 3)
+title(main = "Maximum", cex.main = 1, line = 1)
+title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density", line = 2)
+par(def.par)
+par(mar = margins)
 ```
 
 ### Conclusions
 
- * Hierachichal model
- * Negative binomial for model 1 in order to handle overdispersion
- * Poisson regression
+ * Limitations
+ * Alternative Models
+    - Hierachichal model
+    - Negative binomial for model 1 in order to handle overdispersion
+    - Poisson regression
 
 \pagebreak
 
@@ -477,16 +408,16 @@ title(xlab = expression(paste("T(y, ", theta, ")", sep = "")), ylab = "Density")
 
 ## Model Derivations
 
-Gamma conjugate prior: 
+##### Conjugate prior: gamma
 
-In order to estimate the parameters of the conjugate prior distribution for each model, we acquired a dataset compiled by Randal Olson from the site http://www.moviebodycounts.com/. See references for links to original dataset. The original data is filtered to make it more relevant to our analysis. First all movies with Quentin Tarantino as director were removed. This excluded one movie not in the dataset described above where Tarantino was a director but not a writer: Sin City. Next, we restricted the range of years to exclude any movies released prior to 1989. This was done to avoid influence from movies in a time period with dramatically different social views about movie violence. We assumed movies released in the three years prior to the release of his first movie (*Reservoir Dogs*, 1992) would also be similar enough in nature. All of the Tarantino movies have an MPAA rating of R with the exception of *Death Proof*, which was unrated. As a result, we included movies with ratings R or Unrated. The filter conditions discussed so far apply to all three models, but the filtering based on genre is specific to each model. For both model 1 and model 2, the unique set of genres was determined for the data points in each model. For model 1, the set consists of crime, drama, thriller, action, western, mystery; for model 2, action, thriller, drama, western. Using these sets, a movie from the historical sample was included if one of two conditions was met: (1) all its genres matched the unique genre set, or (2) at least 3 of its genres matched the unique genre set. The number of genres listed for a movie can vary quite a bit, so these conditions help prevent the filtering from excluding too many movies. For Model 3, the genre filter condition is simply a check to see if the movie has the genre war. This condition is far less restrictive than those for models 1 and 2, but is necessary due to the small number of war movies with recorded body counts. We suspect this is due to the difficulty and tedium of recording body counts for war movies. One final note: the original historical movie dataset does not contain any movies with zero deaths. For our purposed, this ensures the kill rate per hour is greater than zero, which is appropriate for the support of the Gamma distribution.  
+The following is a detailed description of the filtering applied to the original historical movie sample. First all movies with Quentin Tarantino as director were removed. This excluded one movie not in the dataset described above where Tarantino was a director but not a writer: Sin City. Next, we restricted the range of years to exclude any movies released prior to 1989. This was done to avoid influence from movies in a time period with dramatically different social views about movie violence. We assumed movies released in the three years prior to the release of his first movie (*Reservoir Dogs*, 1992) would also be similar enough in nature. All of the Tarantino movies have an MPAA rating of R with the exception of *Death Proof*, which was unrated. As a result, we included movies with ratings R or Unrated. The filter conditions discussed so far apply to all three models, but the filtering based on genre is specific to each model. For both model 1 and model 2, the unique set of genres was determined for the data points in each model. For model 1, the set consists of crime, drama, thriller, action, western, mystery; for model 2, action, thriller, drama, western. Using these sets, a movie from the historical sample was included if one of two conditions was met: (1) all its genres matched the unique genre set, or (2) at least 3 of its genres matched the unique genre set. The number of genres listed for a movie can vary quite a bit, so these conditions help prevent the filtering from excluding too many movies. For Model 3, the genre filter condition is simply a check to see if the movie has the genre war. This condition is far less restrictive than those for models 1 and 2, but is necessary due to the small number of war movies with recorded body counts. We suspect this is due to the difficulty and tedium of recording body counts for war movies. One final note: the original historical movie dataset does not contain any movies with zero deaths. For our purposed, this ensures the kill rate per hour is greater than zero, which is appropriate for the support of the Gamma distribution.  
 
 \begin{align}
 \text{Mode}(\theta) & = \frac{\alpha - 1}{\beta} \\
 0.999 & = \int\limits_0^{u} \frac{\beta^{\alpha}}{\Gamma(\alpha)}\theta^{\alpha -1}\text{e}^{-\beta}{\theta}
 \end{align}
 
-```{r, echo = FALSE, fig.width=7.5, fig.height=5}
+```{r, echo = FALSE, fig.height=3}
 par(mfrow = c(1,3))#, cex.axis = 0.75, cex.main = 0.75, cex.lab = 0.75)
 plot(1,0.01, ann = FALSE, axes = FALSE,
      xlim = c(0, 160), ylim = c(0, 0.05), 
@@ -535,14 +466,14 @@ title(main = "Model 3", xlab = expression(theta), ylab = "Density")
 par(mfrow = c(1,1))
 ```
 
-Negative binomial posterior preditive distribution: [ADD STEPS!!!]
+##### Posterior preditive distribution: negative binomial [ADD STEPS!!!]
 \begin{align*}
 p(\tilde{y} ~|~ y) & = \int\limits_0^{\infty} p(\tilde{y} ~|~ \theta)\cdot p(\theta ~|~ y) ~d\theta \\
 & = \int\limits_0^{\infty} \text{Poisson}(\tilde{y}(t) ~|~ \theta) \cdot \text{Gamma}\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right) ~d\theta \\
 & = \text{NB}\left(\alpha + \sum\limits_{i=1}^n y_i ~,~ \frac{1}{\tilde{t}}\left[\beta + \sum\limits_{i=1}^n t_i \right]\right)
 \end{align*}
 
-Noninformative (Jeffreys) Prior:  
+##### Noninformative (Jeffreys) Prior  
 \begin{align*}
 I_n(\theta) & = \text{E}\left\{ \left(\frac{\partial}{\partial \theta} \log p(y~|~\theta)\right)^2 ~\Bigg|~ \theta \right\} \\
 & = \frac{1}{\theta^2} \text{E}\left[\left(\sum\limits_{i=1}^n y_i - \theta\sum\limits_{i=1}^n t_i\right)^2 ~\Bigg|~ \theta \right] \\
@@ -553,7 +484,29 @@ I_n(\theta) & = \text{E}\left\{ \left(\frac{\partial}{\partial \theta} \log p(y~
 
 ## Model Checking
 
-##### Code: Posterior Predictive Checking
+##### Posterior predictive checking: simulation procedure
+
+Because our sampling distribution involves rate and exposure, we must appropriately account for the exposure, $t$, when approximating the distribution of $T(y^{rep}, \theta)$ using simulation. The simulation will be performed as follows:  
+
+1. Draw $\theta^{(i)}$ from Gamma$\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$
+2. Multiply $\theta^{(i)}$ by $t^{*}$
+3. For each $(\theta^{(i)} \cdot t^{*})$, simulate a draw $y^{rep(i)}(t^{*})$ from Poisson$(\theta^{(i)} \cdot t^{*})$
+4. Calculate $T(y^{rep(i)}(t^{*}), \theta^{(i)})$ for $i$ = 1,..., 500000.
+
+For model 1 mostly, this presents a problem when deciding what value of $t^{*}$ to choose for each simulation. To address this issue, we note that there does not appear to be a strong relationship between body count and movie duration, which is supported by a low correlation value of 0.21 and the plot below. As a result, we draw $t^{*}$ randomly from $U(min\{t_1,...t_n\}, max\{t_1,...t_n\})$ in step 2 of the simulation procedure. In the case of model 1, this is the interval [1.65, 2.78]; for model 2, this is the interval [1.85, 2.75]. For model 3, we simply take $t^{*}$ = 2.55 since the model only has a single data point.
+
+```{r, echo = FALSE}
+plot(qt$hours, qt$body.count, ann = FALSE, axes = FALSE, xlim = c(1.5, 3), ylim = c(0,20), col = "violetred", pch = 20)
+#box(col = "gray50", lty = 1)
+axis(1, at = seq.int(1.5, 3, 0.5), col = "gray50")
+axis(2, at = seq.int(0,20,5), col = "gray50")
+mtext(paste("Corr(Hours, Body Count) =", round(cor(qt.m1$hours, qt.m1$body.count), 2)), side = 3, cex = 0.75)
+title(main = "Model 1", line = 1, cex.main = 1)
+title(xlab = "Movie Duration (hours)", ylab = "Body Count")
+```
+
+##### Posterior predictive checking: simulation code
+
 ```{r, eval = FALSE}
 ## Model 1
 ## Simulation set=up
@@ -565,37 +518,21 @@ t.sim <- runif(m, min = min(qt.m1$hours), max = max(qt.m1$hours))
 yrep <- round(mapply(rpois, n = n.obs, lambda = theta.sim*t.sim))
 
 ## Minimum
-obs.min <- min(qt.m1$body.count)    	# observed minimum
-sim.min <- apply(yrep, 2, min)   	# simulated minimum
+obs.min <- min(qt.m1$body.count)    # observed minimum
+sim.min <- apply(yrep, 2, min)      # simulated minimum
 pval.min <- length(sim.min[sim.min >= obs.min]) / m
 
 ## Maximum
-obs.max <- max(qt.m1$body.count)	# observed maximum
-sim.max <- apply(yrep, 2, max)		# simulated maximum
+obs.max <- max(qt.m1$body.count)    # observed maximum
+sim.max <- apply(yrep, 2, max)      # simulated maximum
 pval.max <- length(sim.max[sim.max <= obs.max]) / m
 
-## Range: Full
-obs.range <- diff(range(qt.m1$body.count))	# observed range
-sim.itmd <- apply(yrep, 2, range)		# simulated range
-sim.range <- apply(sim.itmd, 2, diff)
-pval.range <- length(sim.range[sim.range <= obs.range]) / m
-
-## Range: Interquartile
-obs.IQRange <- IQR(qt.m1$body.count)
-sim.IQRange <- apply(yrep, 2, IQR)
-pval.IQR <- length(sim.IQRange[sim.IQRange <= obs.IQRange]) / m
-
-## Mean
-obs.mean <- mean(qt.m1$body.count) # observed mean
-sim.mean <- apply(yrep, 2, mean)   # simulated mean
-pval.mean <- length(sim.mean[sim.mean >= obs.mean]) / m
-
-## Variance
-obs.var <- var(qt.m1$body.count) # observed variance
-sim.var <- apply(yrep, 2, var)   # simulated variance
-pval.var <- length(sim.var[sim.var <= obs.var]) / m
-
 ## Ratio: Sample Variance/ Sample Mean
+obs.mean <- mean(qt.m1$body.count)  # observed mean
+sim.mean <- apply(yrep, 2, mean)    # simulated mean
+obs.var <- var(qt.m1$body.count)    # observed variance
+sim.var <- apply(yrep, 2, var)      # simulated variance
+
 obs.ratio <- obs.var / obs.mean
 sim.ratio <- sim.var / sim.mean
 pval.ratio <- length(sim.ratio[sim.ratio <= obs.ratio]) / m
