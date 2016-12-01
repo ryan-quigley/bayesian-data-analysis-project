@@ -1,6 +1,7 @@
 ---
-#title: 'MATH 264: Bayesian Project'
-#author: "Terry Situ, Caie Yan, Ryan Quigley"
+title: 'MATH 264: Bayesian Project'
+author: "Terry Situ, Caie Yan, Ryan Quigley"
+date: "December 1, 2016"
 geometry: margin=0.5in
 output:
   pdf_document: default
@@ -8,6 +9,8 @@ output:
   html_document: default
 fontsize: 11pt
 ---
+
+\pagebreak
 
 # I. Executive Summary  
 
@@ -67,10 +70,6 @@ From the article where the infographic was originally published:
 
 The body count numbers in these three movies are unsually large and require approximation for one main reason: each contains a single scene of unimaginable (to most people except Tarantino) violence that dramatically increasese the death toll. In light of this information, we find it impossible to judge exchangeability for the entire nine movie filmography of Tarantino as both writer and director; however, we are not attempting to use this as evidence for throwing out the data points as outliers. Instead, given our limited knowledge of alternative Bayesian models, we have chosen to group the data into three distinct sets, and we have fit a model for each group. All movies not described in the quote above are grouped into model 1; the other three movies (in bold in the quote) are further separated into two groups based on the binary genre classification war/non-war. This justifcation was based on analysis of the historical movie sample, which indicated that body counts and kill rates per hour were dramatically higher in the war genre than all other genres that Tarantino movies fall under. The movies included in each model are indicated in the *Model* column of the Taratino filmography table above.
 
-##### Historical Movie Sample  
-
-In order to estimate the parameters of the conjugate prior distribution for each model in the next section, we acquired a dataset compiled by Randal Olson from the site http://www.moviebodycounts.com/. See references for links to original dataset. The original data is filtered to make it more relevant to our analysis. The following table summarizes the kill rate per hour of the subset of the historical data used for each model:
-
 ```{r, echo = FALSE}
 qt.all <- qt
 qt.m1 <- qt[qt$model.1 == 1, ]
@@ -103,7 +102,6 @@ genre.sum <- round(data.frame(1:3, rbind(length(dc.filt.m1$Kill_Rate), length(dc
                         rbind(summary(dc.filt.m1$Kill_Rate), summary(dc.filt.m2$Kill_Rate), summary(dc.filt.m3$Kill_Rate)),
                         row.names = NULL), 2)
 names(genre.sum) <- c("Model", "N", "Min.", "1st Qu.", "Median", "Mean", "3rd Qu.", "Max.")
-knitr::kable(genre.sum, align = "l")
 ```
 
 # III. Models
@@ -135,7 +133,7 @@ For model 1, if we imagine dropping 59 balls into 6 boxes each with probability 
 
 We chose to use conjugate priors for our models because data on body counts per movie was readily available thanks to the dedication of movie buffs on the internet. Since the conjugate prior distribution for the Poisson sampling distribution is the Gamma distribution, the prior distribution of $\theta$ will be of the form $p(\theta) \propto \theta^{\alpha - 1}e^{-\beta\cdot\theta}$
 
-The parameters of the conjugate prior distributions for each model were calculated by solving analytically a pair of equations for $\alpha$ and $\beta$ (Lee, 2016). The equations were determined by (1) setting the mode formula for the gamma distribution equal to the mode of the kernel density estimate, and by (2) observing the interval that approximately 99.9% of the historical data subset was contained in. For modes of the kernel density estimates are 8.61, 17.85, and 43.83, respectively. The intervals that appeared to contain 99.9% of the historical data were (0,150), (0,150), and (0,400), respectively. See the *Model Derivations* section of the appendix for the mathematical equations and plots of the kernel density estimates and theoretical gamma distributions.
+In order to estimate the parameters of the conjugate prior distribution for each model in the next section, we acquired a dataset compiled by Randal Olson from the site http://www.moviebodycounts.com/. See references for links to original dataset, and the *[Model Derivations]* section of the appendix for a detailed summary of the historical data used. The parameters of the conjugate prior distributions for each model were calculated by solving analytically a pair of equations for $\alpha$ and $\beta$ (Lee, 2016). The equations were determined by (1) setting the mode formula for the gamma distribution equal to the mode of the kernel density estimate, and by (2) observing the interval that approximately 99.9% of the historical data subset was contained in. For modes of the kernel density estimates are 8.61, 17.85, and 43.83, respectively. The intervals that appeared to contain 99.9% of the historical data were (0,150), (0,150), and (0,400), respectively.
 
 ```{r, echo = FALSE}
 ## Model 1
@@ -437,12 +435,11 @@ par(mfrow = c(1,1))
 
 ##### Conjugate prior: gamma
 
-The following is a detailed description of the filtering applied to the original historical movie sample. First all movies with Quentin Tarantino as director were removed. This excluded one movie not in the dataset described above where Tarantino was a director but not a writer: Sin City. Next, we restricted the range of years to exclude any movies released prior to 1989. This was done to avoid influence from movies in a time period with dramatically different social views about movie violence. We assumed movies released in the three years prior to the release of his first movie (*Reservoir Dogs*, 1992) would also be similar enough in nature. All of the Tarantino movies have an MPAA rating of R with the exception of *Death Proof*, which was unrated. As a result, we included movies with ratings R or Unrated. The filter conditions discussed so far apply to all three models, but the filtering based on genre is specific to each model. For both model 1 and model 2, the unique set of genres was determined for the data points in each model. For model 1, the set consists of crime, drama, thriller, action, western, mystery; for model 2, action, thriller, drama, western. Using these sets, a movie from the historical sample was included if one of two conditions was met: (1) all its genres matched the unique genre set, or (2) at least 3 of its genres matched the unique genre set. The number of genres listed for a movie can vary quite a bit, so these conditions help prevent the filtering from excluding too many movies. For Model 3, the genre filter condition is simply a check to see if the movie has the genre war. This condition is far less restrictive than those for models 1 and 2, but is necessary due to the small number of war movies with recorded body counts (we suspect this is due to the difficulty and tedium of recording body counts for war movies). The influence war has on body count will outweigh the influence of any other genre also listed, so we believe this less restrictive condition for model 3 is not problematic. One final note: the original historical movie dataset does not contain any movies with zero deaths. For our purposes, this ensures the kill rate per hour is greater than zero, which is appropriate for the support of the Gamma distribution.  
+The following is a detailed description of the filtering applied to the original historical movie sample. First all movies with Quentin Tarantino as director were removed. This excluded one movie not in the dataset described above where Tarantino was a director but not a writer: Sin City. Next, we restricted the range of years to exclude any movies released prior to 1989. This was done to avoid influence from movies in a time period with dramatically different social views about movie violence. We assumed movies released in the three years prior to the release of his first movie (*Reservoir Dogs*, 1992) would also be similar enough in nature. All of the Tarantino movies have an MPAA rating of R with the exception of *Death Proof*, which was unrated. As a result, we included movies with ratings R or Unrated. The filter conditions discussed so far apply to all three models, but the filtering based on genre is specific to each model. For both model 1 and model 2, the unique set of genres was determined for the data points in each model. For model 1, the set consists of crime, drama, thriller, action, western, mystery; for model 2, action, thriller, drama, western. Using these sets, a movie from the historical sample was included if one of two conditions was met: (1) all its genres matched the unique genre set, or (2) at least 3 of its genres matched the unique genre set. The number of genres listed for a movie can vary quite a bit, so these conditions help prevent the filtering from excluding too many movies. For Model 3, the genre filter condition is simply a check to see if the movie has the genre war. This condition is far less restrictive than those for models 1 and 2, but is necessary due to the small number of war movies with recorded body counts (we suspect this is due to the difficulty and tedium of recording body counts for war movies). The influence war has on body count will outweigh the influence of any other genre also listed, so we believe this less restrictive condition for model 3 is not problematic. One final note: the original historical movie dataset does not contain any movies with zero deaths. For our purposes, this ensures the kill rate per hour is greater than zero, which is appropriate for the support of the Gamma distribution. The following table summarizes the kill rate per hour of the subset of the historical data used for each model.
 
-\begin{align}
-\text{Mode}(\theta) & = \frac{\alpha - 1}{\beta} \\
-0.999 & = \int\limits_0^{u} \frac{\beta^{\alpha}}{\Gamma(\alpha)}\theta^{\alpha -1}\text{e}^{-\beta}{\theta}
-\end{align}
+```{r, echo = FALSE}
+knitr::kable(genre.sum, align = "l")
+``` 
 
 ```{r, echo = FALSE, fig.width=8, fig.height=3}
 par(mfrow = c(1,3))#, cex.axis = 0.75, cex.main = 0.75, cex.lab = 0.75)
@@ -492,6 +489,13 @@ legend("top", legend = c(paste("Gamma(", alpha.m3, ", ", beta.m3,")", sep = ""),
 title(main = "Model 3", xlab = expression(theta), ylab = "Density")
 par(mfrow = c(1,1))
 ```
+
+The system of equations used to determine the parameters of the gamma distirubtion from the historical data is,  
+
+\begin{align}
+\text{Mode}(\theta) & = \frac{\alpha - 1}{\beta} \\
+0.999 & = \int\limits_0^{u} \frac{\beta^{\alpha}}{\Gamma(\alpha)}\theta^{\alpha -1}\text{e}^{-\beta}{\theta}
+\end{align}
 
 ##### Posterior preditive distribution: negative binomial
 
