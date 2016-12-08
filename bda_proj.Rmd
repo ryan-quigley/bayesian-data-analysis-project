@@ -1,14 +1,10 @@
 ---
-title: 'MATH 264: Bayesian Data Analysis Project'
-subtitle: 'Body Count Analysis of Quentin Tarantino Movies'
-author: "Terry Situ, Caie Yan, Ryan Quigley"
+title: "MATH 264: Bayesian Data Analysis Project"
 date: "December 1, 2016"
-geometry: margin=0.5in
+subtitle: "Body Count Analysis of Quentin Tarantino Movies"
 output:
-  pdf_document: default
-  html_notebook: default
   html_document: default
-fontsize: 11pt
+  html_notebook: default
 ---
 
 \pagebreak
@@ -18,7 +14,7 @@ fontsize: 11pt
 Quentin Tarantino’s moves are famous (or notorious) for violent death and massacre. In this project, we use Bayesian methods to analyze and predict the body count in Quentin Tarantino’s next movie: not a simple task for such an eccentric and unpredictable filmmaker. Even though he has a reputation for violence, the amount and type vary widely from movie to movie. With this in mind, we realized that his collection of movies did not all belong to a single population; there is a natural separation within the collection which suggests that the data be separated into three different groups. As a result, we fit three separate models, one for each group. Given the nature of the data, we chose the Poisson model for our sampling distributions. Using an external dataset containing the body counts and metadata of about 200 movies, we explored the possible factors, such a genre, rating, and release year, that could be associated with body count of a movie. Among all the factors, the association of genre with body count is most notably. This allowed us to develop informed conjugate priors relevant to the data within each models. Using the resulting gamma posterior and negative binomial posterior predictive distribution, our models provide predictions for Tarantino's next movie in three different scenarios; however, given that the majority of his movies belong to one group, we predict that the most likely death count of his next movie will be 9 assuming the movie length is 2.3 hours.
 
 ```{r global_options, include=FALSE}
-knitr::opts_chunk$set(fig.align = "center")
+knitr::opts_chunk$set(fig.align = "center", fig.width = 12)
 ```
 
 ```{r, echo = FALSE}
@@ -162,7 +158,7 @@ d3 <- density(dc.filt.m3$Kill_Rate, kernel = "epanechnikov", bw = h, from = 0, t
 
 In general, the posterior distribution is Gamma$\left(\alpha + \sum\limits_{i=1}^n y_i, \beta + \sum\limits_{i=1}^n t_i\right)$ (Gelman et al., 2003, pg. 45). The parameterization of each posterior distribution is summarized in the table at the top of this section, and plots of the prior and posterior are included below for additional clarity. Please take note of the different scale of the vertical axis in each plot. For a closer look at the prior distributions for each model see the *Model Derivations* section of the appendix.
 
-```{r, echo = FALSE, fig.width=8, fig.height=3}
+```{r, echo = FALSE}
 par(mfrow = c(1,3))
 ## Model 1
 t.sum.m1 <- sum(qt.m1$hours)
@@ -222,7 +218,7 @@ Model | Movie Duration (hours) | Body Count | $\text{Pr}(\tilde{y} ~\vert~ y)$
 
 The following plots show the full posterior predictive distribution of each model for a sample of easily interpretable movie durations. For each model, the spread of the distribution increases with movie duration meaning our predictions for the next movie are less precise as movie duration increases.
 
-```{r, echo = FALSE, fig.width=8}
+```{r, echo = FALSE}
 def.par <- par(no.readonly = TRUE)
 margins <- par("mar")
 layout(matrix(c(1,1,2,3), 2, 2, byrow = TRUE))
@@ -245,7 +241,7 @@ for (i in 1:4) {
 axis(1, seq.int(0,35,5), col = "gray50")
 axis(2, seq.int(0,0.16,0.04), col = "gray50")
 title(main = "Model 1", xlab = expression(tilde(y)), ylab = expression(paste("Pr(", tilde(y), " | y)", sep = "")), line = 2)
-legend(25, 0.16, title = "Movie Duration (hours)", legend = t.new, col = col.vec, pch = 20, ncol = 2, bty = "n", cex = 0.75)
+legend(25, 0.16, title = "Movie Duration (hours)", legend = t.new, col = col.vec, pch = 20, ncol = 2, bty = "n")
 #text(x.modes.m1 + 3, modes.m1 + 0.04, labels = round(modes.m1, 3), pos = 4)
 #arrows(x.modes.m1 - 1, modes.m1, x.modes.m1 + 3, modes.m1 + 0.04, length = 0.1, code = 1)
 points(x.modes.m1 - 1, rep(0, length(x.modes.m1)), pch = 4, col = "black")
@@ -339,7 +335,7 @@ sim.ratio <- sim.var / sim.mean
 pval.ratio <- length(sim.ratio[sim.ratio <= obs.ratio]) / m
 ```
 
-```{r, echo = FALSE, fig.width=8}
+```{r, echo = FALSE}
 def.par <- par(no.readonly = TRUE)
 margins <- par("mar")
 layout(matrix(c(1,1,2,3), 2, 2, byrow = TRUE))
@@ -409,30 +405,26 @@ In order to justify that $y_i,...,y_n$ are c.i.i.d poisson observations given $\
 $$p(y_1,...y_n ~|~ s_n) = \frac{s_n!}{y_1!,...,y_n!} \prod\limits_{i=1}^n \left(\frac{1}{n}\right)^{y_i}$$
 for every $n$, where $s_n = y_1 + ... + y_n$.  
 
-Note, this condition is not reasonably justified if we group all the data together; however, once grouped into three models, the condition seems reasonable within each model. The left panel in the following plot displays 10,000 simulations of dropping 59 balls in 6 equally likely bins; the right panel, simulates dropping 126 balls in 2 equally likely bins. The black triangles indicate the actually data points used for that model.  
+Note, this condition is not reasonably justified if we group all the data together; however, once grouped into three models, the condition seems reasonable within each model. The following plot displays 10,000 simulations of dropping 59 balls in 6 equally likely bins; the black triangles indicate the actually data points used for that model. Note, draws were not simulated for model 2 because it seems obvious that a result of (62, 64) is reasonable when dropping 126 balls into two equally likely bins.
 
-```{r, eval = FALSE}
-mltnom.check.m1 <- rmultinom(n = 10000, prob = rep(1/6, 6), size = 59)
-mltnom.check.m2 <- rmultinom(n = 10000, prob = rep(1/2, 2), size = 126)
+```{r, echo = FALSE}
+data.m1 <- c(11,7,4,13,6,18)
+llk.check <- rmultinom(n = 100000, prob = rep(1/6, 6), size = 59)
 ```
 
-```{r, echo = FALSE, fig.width=8, fig.height=3.5}
-par(mfrow = c(1,2), cex.axis = 0.75, cex.main = 0.75, cex.lab = 0.75)
-mltnom.check.m1 <- rmultinom(n = 10000, prob = rep(1/6, 6), size = sum(qt.m1$body.count))
-stripchart(mltnom.check.m1, method = "stack", offset = 0.0008, pch = 20, 
-           col = "violetred", at = 0, ann = FALSE, axes = FALSE, xlim = c(0,30), ylim = c(0,2))
-axis(1, at = seq.int(0,30,5))
-points(qt.m1$body.count, rep(0, 6), pch = 17, cex = 1, col = "black")
-title(main = "Model 1", xlab = "Bin Counts")
+```{r, echo = FALSE}
+llk.vec <- llk.check
+dim(llk.vec) <- NULL
+llk.vec <- as.factor(llk.vec)
+ct <- table(llk.vec)
 
-mltnom.check.m2 <- rmultinom(n = 10000, prob = rep(1/2, 2), size = sum(qt.m2$body.count))
-stripchart(mltnom.check.m2, method = "stack", offset = 0.004, pch = 20, 
-           col = "violetred", at = 0, ann = FALSE, axes = FALSE, xlim = c(30, 90))
-#axis(1, at = 30:30, labels = NA)
-axis(1, at = seq.int(30,90,10))#, lwd = 0, lwd.tick = 0)
-points(qt.m2$body.count, rep(0, 2), pch = 17, cex = 1, col = "black")
-title(main = "Model 2", xlab = "Bin Counts")
-par(mfrow = c(1,1))
+# margins <- par("mar")
+# par(mar = par("mar") + c(0, 2, 0, 0))
+
+plot(llk.vec)
+plot(llk.vec[llk.vec %in% data.m1], add = TRUE, col = "violetred")
+legend("topright", inset = 0.05, legend = "Observed Body Count", fill = "violetred", bty = "n")
+title(main = c("100,000 Multinomial Draws", "59 bodies 6 movies"), xlab = "Bin Count", ylab = "Frequency")
 ```
 
 ## Model Derivations
@@ -445,7 +437,7 @@ The following is a detailed description of the filtering applied to the original
 knitr::kable(genre.sum, align = "l")
 ``` 
 
-```{r, echo = FALSE, fig.width=8, fig.height=3}
+```{r, echo = FALSE}
 par(mfrow = c(1,3))#, cex.axis = 0.75, cex.main = 0.75, cex.lab = 0.75)
 plot(1,0.01, ann = FALSE, axes = FALSE,
      xlim = c(0, 160), ylim = c(0, 0.05), 
@@ -459,7 +451,7 @@ axis(2, at = seq.int(0, 0.05, 0.01))
 curve(dgamma(x, shape = alpha.m1, rate = beta.m1), from = 0, to = 200, add = TRUE, lty = 2, col = "slateblue")
 #legend("top", legend = paste(c("Mean =", "Mode =", "Variance ="), c(g.mean, g.mode, g.var)), bty = "n")
 legend("top", legend = c(paste("Gamma(", alpha.m1, ", ", beta.m1,")", sep = ""), "KDE"), 
-       col = c("slateblue", "violetred"), lty = c(2,1), bty = "n", cex = 0.75)
+       col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
 title(main = "Model 1", xlab = expression(theta), ylab = "Density")
 
 plot(1,0.01, ann = FALSE, axes = FALSE,
@@ -474,7 +466,7 @@ axis(2, at = seq.int(0, 0.05, 0.01))
 curve(dgamma(x, shape = alpha.m2, rate = beta.m2), from = 0, to = 160, add = TRUE, lty = 2, col = "slateblue")
 #legend("top", legend = paste(c("Mean =", "Mode =", "Variance ="), c(g.mean, g.mode, g.var)), bty = "n")
 legend("top", legend = c(paste("Gamma(", alpha.m2, ", ", beta.m2,")", sep = ""), "KDE"), 
-       col = c("slateblue", "violetred"), lty = c(2,1), bty = "n", cex = 0.75)
+       col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
 title(main = "Model 2", xlab = expression(theta), ylab = "Density")
 
 plot(1,0.01, ann = FALSE, axes = FALSE,
@@ -489,7 +481,7 @@ axis(2, at = seq.int(0, 0.02, 0.005))
 curve(dgamma(x, shape = alpha.m3, rate = beta.m3), from = 0, to = 400, add = TRUE, lty = 2, col = "slateblue")
 #legend("top", legend = paste(c("Mean =", "Mode =", "Variance ="), c(g.mean, g.mode, g.var)), bty = "n")
 legend("top", legend = c(paste("Gamma(", alpha.m3, ", ", beta.m3,")", sep = ""), "KDE"), 
-       col = c("slateblue", "violetred"), lty = c(2,1), bty = "n", cex = 0.75)
+       col = c("slateblue", "violetred"), lty = c(2,1), bty = "n")
 title(main = "Model 3", xlab = expression(theta), ylab = "Density")
 par(mfrow = c(1,1))
 ```
@@ -527,7 +519,7 @@ Because our sampling distribution involves rate and exposure, we must appropriat
 
 For model 1, this presents a problem when deciding what value of $t^{*}$ to choose for each simulation. To address this issue, we note that there does not appear to be a strong relationship between body count and movie duration, which is supported by a low correlation value of 0.21 and the plot below. As a result, we draw $t^{*}$ randomly from $U(min\{t_1,...t_n\}, max\{t_1,...t_n\})$ in step 2 of the simulation procedure. In the case of model 1, this is the interval [1.65, 2.78].
 
-```{r, echo = FALSE, fig.width=8, fig.height=4}
+```{r, echo = FALSE}
 plot(qt$hours, qt$body.count, ann = FALSE, axes = FALSE, xlim = c(1.5, 3), ylim = c(0,20), col = "violetred", pch = 20)
 #box(col = "gray50", lty = 1)
 axis(1, at = seq.int(1.5, 3, 0.5), col = "gray50")
@@ -582,7 +574,7 @@ I_n(\theta) & = \text{E}\left\{ \left(\frac{\partial}{\partial \theta} \log p(y~
 \end{align*}  
 This results in an improper noninformative prior; however, this does not prevent us from finding a posterior distribution for $\theta$. The resulting posterior distribution for $\theta$ is Gamma$\left(0.5 + \sum\limits_{i=1}^n y_i, \sum\limits_{i=1}^n t_i\right)$. Below are the plots of the posterior distributions of $\theta$ as a result of using a conjugate prior and a non-informative prior. In all three models the differences are neglible, so a choosing a non-informative prior instead of a conjugate prior would have little impact on posterior inference.
 
-```{r, echo = FALSE, fig.width=8, fig.height=4}
+```{r, echo = FALSE}
 par(mfrow = c(1,3))
 curve(dgamma(x, shape = y.sum.m1 + 0.5, rate = t.sum.m1), 
       from = 0, to = 10, 
