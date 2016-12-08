@@ -51,12 +51,6 @@ qt.data.sum <- qt[, 1:7]
 qt.data.sum <- cbind(c(1,1,1,2,1,1,3,2,1), qt.data.sum)
 qt.data.sum$hours <- round(qt.data.sum$hours, 2)
 names(qt.data.sum) <- c("Model", "Movie", "Genre", "Year", "Rating", "Body Count", "Hours", "Kill Rate/Hr" )
-h8.gsplit <- unlist(strsplit(qt.data.sum[9,3], ", ", fixed = TRUE))
-kbv2.gsplit <- unlist(strsplit(qt.data.sum[5,3], ", ", fixed = TRUE))
-qt.data.sum[5,3] <- paste(kbv2.gsplit[1:2], collapse = ", ")
-qt.data.sum[9,3] <- paste(h8.gsplit[1:3], collapse = ", ")
-qt.data.sum <- rbind(qt.data.sum[1:5, ], c("", "", paste(kbv2.gsplit[3:4], collapse = ", "), "", "", "", "", ""), 
-                     qt.data.sum[6:9, ], c("", "", paste(h8.gsplit[4:5], collapse = ", "), "", "", "", "", ""))
 knitr::kable(qt.data.sum, align = c("l", "l", "l", "l", "r", "r", "r"), row.names = FALSE, digits = 2)
 ```
 
